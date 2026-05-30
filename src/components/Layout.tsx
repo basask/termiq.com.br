@@ -50,7 +50,7 @@ export default function Layout() {
 
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 min-w-0 overflow-auto pt-14 md:pt-0">
+      <main className="flex-1 min-w-0 overflow-auto pt-14 md:pt-0 md:pl-60">
         <Outlet />
       </main>
     </div>

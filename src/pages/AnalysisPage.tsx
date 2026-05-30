@@ -2,7 +2,8 @@ import ReactECharts from 'echarts-for-react'
 import { TrendingUp, Thermometer, Droplets, Activity } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { EChartsOption } from 'echarts'
-import { useEffect, useState } from 'react'
+import { Suspense, use, useEffect, useState } from 'react'
+import { DataFrame, readCSV } from 'danfojs';
 
 const hours = Array.from({ length: 25 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
 
@@ -29,7 +30,7 @@ const chartOption:EChartsOption = {
   legend: {
     top: 4,
     left: 0,
-    data: ['Sensor A (°C)'],
+    data: [],
     itemWidth: 16,
     itemHeight: 2,
     itemGap: 20,
@@ -98,14 +99,7 @@ const chartOption:EChartsOption = {
     toolbox: ['rect', 'polygon', 'lineX', 'lineY', 'keep', 'clear'],
     xAxisIndex: 0
   },
-  series: [
-    {
-      name: 'Sensor A (°C)',
-      type: 'scatter' as const,
-      yAxisIndex: 0,
-      data: [],
-    },
-  ],
+  series: [],
 }
 
 const kpis = [
@@ -115,39 +109,49 @@ const kpis = [
   { label: 'Peak outlet', value: '94.6°C', delta: '↗ threshold: 90°C', deltaOk: false, icon: Activity, color: 'text-tq-danger' },
 ]
 
-const tempData = [
-  22.0, 22.2, 22.1, 21.9, 22.4, 23.0, 23.6, 24.1, 24.4, 24.3, 24.0, 23.6,
-  23.3, 23.9, 24.2, 24.6, 24.9, 25.0, 24.7, 24.2, 23.8, 23.4, 23.0, 22.7, 22.5,
-];
+async function fetchData(path:string): Promise<DataFrame> {
+  const columns = {
+    0: 'date', 1: 'time',
+    2: 's1', 3: 'c1', 
+    4: 's2', 5: 'c2',
+    6: 's3', 7: 'c3',
+    8: 's4', 9: 'c4'
+  };
+  const df = await readCSV(path, { header: false });
+  df.rename(columns, { inplace: true})
+  return df;
+}
+
+// const tsData = fetchData('/data/office-temperature-data-20250123.csv');
+const tsData = fetchData('/data/test-synthetic.csv');
 
 export default function AnalysisPage() {
 
-  const [option, setOption] = useState<EChartsOption>(chartOption);
-  
-  useEffect(() => {
-    const intervalId = setTimeout(() => {
+  const timeseries = use(tsData);
+  const options = {...chartOption};
 
-      if (option.series === undefined || option.series === null || option.series.length === 0) {
-        return;
-      }
 
-      const { data } = option.series[0];
-      
-      if (data.length >= tempData.length) {
-        clearInterval(intervalId);
-        return;
-      }
-
-      setOption({
-        ...option, 
-        series: [{
-          data: tempData.slice(0, data.length + 1)
-        }]
-      })
-    }, 50);
-
-    return () => clearInterval(intervalId)
+  options.xAxis.data = timeseries['time'].values.map((i) => {
+    console.log('>> ',  i);
+    return i;
   })
+
+  for (const item of ['s1', 's2', 's3', 's4']) {
+    options.series = [
+      ...options.series, 
+      {
+        name: `Sensor ${item} (°C)`,
+        type: 'line' as const,
+        yAxisIndex: 0,
+        data: [...timeseries[item].values],
+      }
+    ];
+  
+    options.legend.data = [
+      ...options.legend.data, 
+      `Sensor ${item} (°C)`
+    ];
+  }
 
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
@@ -192,13 +196,15 @@ export default function AnalysisPage() {
             Inlet temp · Outlet temp · Flow rate · sensor_temp_b03
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-4 pb-4 pt-0">
-          <ReactECharts
-            option={option}
-            style={{ height: 'clamp(280px, 50vw, 520px)', width: '100%' }}
-            lazyUpdate
-          />
-        </CardContent>
+        <Suspense fallback={<div>Loading...</div>}>
+          <CardContent className="px-4 pb-4 pt-0">
+            <ReactECharts
+              option={options}
+              style={{ height: 'clamp(280px, 50vw, 520px)', width: '100%' }}
+              lazyUpdate
+              />
+          </CardContent>
+        </Suspense>
       </Card>
     </div>
   )

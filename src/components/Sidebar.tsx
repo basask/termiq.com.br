@@ -53,8 +53,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         // Mobile: fixed drawer, slides in from left
         'fixed top-0 left-0 h-full z-50 transition-transform duration-300 ease-tq-out',
         isOpen ? 'translate-x-0' : '-translate-x-full',
-        // Desktop: sticky layout participant, always visible
-        'md:sticky md:top-0 md:h-screen md:translate-x-0',
+        // Desktop: fixed to viewport, always visible
+        'md:fixed md:top-0 md:h-screen md:translate-x-0',
       )}
     >
       {/* Brand */}
