@@ -1,11 +1,13 @@
 import ReactECharts from 'echarts-for-react'
 import { TrendingUp, Thermometer, Droplets, Activity } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { EChartsOption } from 'echarts'
+import { useEffect, useState } from 'react'
 
 const hours = Array.from({ length: 25 }, (_, i) => `${String(i).padStart(2, '0')}:00`)
 
 
-const chartOption = {
+const chartOption:EChartsOption = {
   backgroundColor: 'transparent',
   grid: { top: 56, right: 72, bottom: 36, left: 56 },
   tooltip: {
@@ -27,7 +29,7 @@ const chartOption = {
   legend: {
     top: 4,
     left: 0,
-    data: ['Inlet temp (°C)', 'Outlet temp (°C)', 'Flow rate (L/s)'],
+    data: ['Sensor A (°C)'],
     itemWidth: 16,
     itemHeight: 2,
     itemGap: 20,
@@ -99,18 +101,10 @@ const chartOption = {
   series: [
     {
       name: 'Sensor A (°C)',
-      type: 'line' as const,
+      type: 'scatter' as const,
       yAxisIndex: 0,
-      data: [
-        22.0, 22.2, 22.1, 21.9, 22.4, 23.0, 23.6, 24.1, 24.4, 24.3, 24.0, 23.6,
-        23.3, 23.9, 24.2, 24.6, 24.9, 25.0, 24.7, 24.2, 23.8, 23.4, 23.0, 22.7, 22.5,
-      ],
-      smooth: 0.0,
-      symbol: 'none',
-      lineStyle: { color: '#4CAF50', width: 2 },
-      itemStyle: { color: '#4CAF50' },
+      data: [],
     },
-
   ],
 }
 
@@ -121,9 +115,42 @@ const kpis = [
   { label: 'Peak outlet', value: '94.6°C', delta: '↗ threshold: 90°C', deltaOk: false, icon: Activity, color: 'text-tq-danger' },
 ]
 
+const tempData = [
+  22.0, 22.2, 22.1, 21.9, 22.4, 23.0, 23.6, 24.1, 24.4, 24.3, 24.0, 23.6,
+  23.3, 23.9, 24.2, 24.6, 24.9, 25.0, 24.7, 24.2, 23.8, 23.4, 23.0, 22.7, 22.5,
+];
+
 export default function AnalysisPage() {
+
+  const [option, setOption] = useState<EChartsOption>(chartOption);
+  
+  useEffect(() => {
+    const intervalId = setTimeout(() => {
+
+      if (option.series === undefined || option.series === null || option.series.length === 0) {
+        return;
+      }
+
+      const { data } = option.series[0];
+      
+      if (data.length >= tempData.length) {
+        clearInterval(intervalId);
+        return;
+      }
+
+      setOption({
+        ...option, 
+        series: [{
+          data: tempData.slice(0, data.length + 1)
+        }]
+      })
+    }, 50);
+
+    return () => clearInterval(intervalId)
+  })
+
   return (
-    <div className="p-7 flex flex-col gap-6">
+    <div className="p-4 md:p-7 flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Analysis</h1>
         <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
@@ -132,7 +159,7 @@ export default function AnalysisPage() {
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map(({ label, value, delta, deltaOk, icon: Icon, color }) => (
           <Card key={label}>
             <CardContent className="p-4">
@@ -167,9 +194,8 @@ export default function AnalysisPage() {
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           <ReactECharts
-            option={chartOption}
-            style={{ height: '520px', width: '100%' }}
-            notMerge
+            option={option}
+            style={{ height: 'clamp(280px, 50vw, 520px)', width: '100%' }}
             lazyUpdate
           />
         </CardContent>

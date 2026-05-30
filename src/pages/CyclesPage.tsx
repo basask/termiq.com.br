@@ -18,7 +18,7 @@ const cycleStatusVariant: Record<string, 'success' | 'brand' | 'warning' | 'defa
 
 export default function CyclesPage() {
   return (
-    <div className="p-7 flex flex-col gap-6">
+    <div className="p-4 md:p-7 flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Cycles</h1>
         <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
@@ -27,7 +27,7 @@ export default function CyclesPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Cycles today', value: '84', icon: RefreshCw, color: 'text-tq-green-600' },
           { label: 'Avg cycle time', value: '47 min', icon: Clock, color: 'text-tq-fg-3' },
@@ -58,7 +58,7 @@ export default function CyclesPage() {
           <CardTitle>Recent cycles</CardTitle>
           <CardDescription>Last 5 cycles across all machines</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr className="bg-tq-bg-soft border-b border-tq-border">

@@ -25,7 +25,7 @@ const statusDotColor: Record<string, string> = {
 
 export default function MachinePage() {
   return (
-    <div className="p-7 flex flex-col gap-6">
+    <div className="p-4 md:p-7 flex flex-col gap-6">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Machine monitoring</h1>
@@ -36,7 +36,7 @@ export default function MachinePage() {
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total machines', value: '5', icon: Cpu, color: 'text-tq-green-600' },
           { label: 'Avg temperature', value: '81.1°C', icon: Thermometer, color: 'text-tq-heat-500' },
@@ -64,7 +64,7 @@ export default function MachinePage() {
         <CardHeader className="p-4">
           <CardTitle>All machines</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-tq-bg-soft hover:bg-tq-bg-soft">

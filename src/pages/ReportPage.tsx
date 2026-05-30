@@ -19,8 +19,8 @@ const reportTypes = [
 
 export default function ReportPage() {
   return (
-    <div className="p-7 flex flex-col gap-6">
-      <div className="flex items-end justify-between">
+    <div className="p-4 md:p-7 flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Reports</h1>
           <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
@@ -34,7 +34,7 @@ export default function ReportPage() {
       </div>
 
       {/* Report type cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {reportTypes.map(({ title, description, icon: Icon }) => (
           <Card
             key={title}
@@ -57,7 +57,7 @@ export default function ReportPage() {
           <CardTitle>Recent reports</CardTitle>
           <CardDescription>Previously generated reports available for download</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr className="bg-tq-bg-soft border-b border-tq-border">

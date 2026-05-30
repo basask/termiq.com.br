@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Cpu, RefreshCw, LineChart, FileText, Settings } from 'lucide-react'
+import { Cpu, RefreshCw, LineChart, FileText, Settings, X } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -38,15 +38,39 @@ function LogoMark({ size = 26 }: { size?: number }) {
   )
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
 
   return (
-    <aside className="w-60 bg-tq-bg-soft border-r border-tq-divider flex flex-col sticky top-0 h-screen py-4 px-3 shrink-0">
+    <aside
+      className={cn(
+        'w-60 bg-tq-bg-soft border-r border-tq-divider flex flex-col py-4 px-3 shrink-0',
+        // Mobile: fixed drawer, slides in from left
+        'fixed top-0 left-0 h-full z-50 transition-transform duration-300 ease-tq-out',
+        isOpen ? 'translate-x-0' : '-translate-x-full',
+        // Desktop: sticky layout participant, always visible
+        'md:sticky md:top-0 md:h-screen md:translate-x-0',
+      )}
+    >
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-2 mb-5">
-        <LogoMark size={26} />
-        <span className="font-bold text-[15px] tracking-tight text-tq-fg-1">TermIQ</span>
+      <div className="flex items-center justify-between px-2 mb-5">
+        <div className="flex items-center gap-2.5">
+          <LogoMark size={26} />
+          <span className="font-bold text-[15px] tracking-tight text-tq-fg-1">TermIQ</span>
+        </div>
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden flex items-center justify-center w-7 h-7 rounded-md text-tq-fg-3 hover:bg-tq-bg-muted hover:text-tq-fg-1 transition-colors"
+          aria-label="Close menu"
+        >
+          <X size={16} />
+        </button>
       </div>
 
       {/* Primary nav */}
@@ -58,6 +82,7 @@ export default function Sidebar() {
             <NavLink
               key={path}
               to={path}
+              onClick={onClose}
               className={cn(
                 'flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13px] font-medium text-tq-fg-2',
                 'transition-colors duration-[140ms] ease-tq-out',
