@@ -25,7 +25,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen bg-tq-bg">
       {/* Mobile top bar */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-tq-bg-soft border-b border-tq-divider flex items-center px-4 gap-3 shrink-0">
+      <header className="2xl:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-tq-bg-soft border-b border-tq-divider flex items-center px-4 gap-3 shrink-0">
         <button
           onClick={() => setSidebarOpen(true)}
           className="flex items-center justify-center w-8 h-8 rounded-md text-tq-fg-2 hover:bg-tq-bg-muted hover:text-tq-fg-1 transition-colors"
@@ -42,7 +42,7 @@ export default function Layout() {
       {/* Drawer overlay */}
       {sidebarOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/30"
+          className="2xl:hidden fixed inset-0 z-40 bg-black/30"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -50,7 +50,7 @@ export default function Layout() {
 
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 min-w-0 overflow-auto pt-14 md:pt-0 md:pl-60">
+      <main className="flex-1 min-w-0 overflow-auto pt-14 2xl:pt-0 2xl:pl-60">
         <Outlet />
       </main>
     </div>

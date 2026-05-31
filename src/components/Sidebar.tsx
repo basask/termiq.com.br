@@ -54,7 +54,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         'fixed top-0 left-0 h-full z-50 transition-transform duration-300 ease-tq-out',
         isOpen ? 'translate-x-0' : '-translate-x-full',
         // Desktop: fixed to viewport, always visible
-        'md:fixed md:top-0 md:h-screen md:translate-x-0',
+        '2xl:fixed 2xl:top-0 2xl:h-screen 2xl:translate-x-0',
       )}
     >
       {/* Brand */}
@@ -66,7 +66,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Close button — mobile only */}
         <button
           onClick={onClose}
-          className="md:hidden flex items-center justify-center w-7 h-7 rounded-md text-tq-fg-3 hover:bg-tq-bg-muted hover:text-tq-fg-1 transition-colors"
+          className="2xl:hidden flex items-center justify-center w-7 h-7 rounded-md text-tq-fg-3 hover:bg-tq-bg-muted hover:text-tq-fg-1 transition-colors"
           aria-label="Close menu"
         >
           <X size={16} />
@@ -125,7 +125,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <AvatarFallback className="text-[11px]">BK</AvatarFallback>
           </Avatar>
           <div className="leading-tight min-w-0">
-            <div className="text-[12px] font-semibold text-tq-fg-1 truncate">B. Kasprowiak</div>
+            <div className="text-[12px] font-semibold text-tq-fg-1 truncate">R. Fernandes</div>
             <div className="text-[11px] text-tq-fg-3">Admin</div>
           </div>
         </div>
