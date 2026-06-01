@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { path: '/machine', icon: Cpu, label: 'Machine' },
+  { path: '/devices', icon: Cpu, label: 'Devices' },
   { path: '/cycles', icon: RefreshCw, label: 'Cycles' },
   { path: '/analysis', icon: LineChart, label: 'Analysis' },
   { path: '/report', icon: FileText, label: 'Report' },
