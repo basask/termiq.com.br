@@ -1,15 +1,17 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Cpu, RefreshCw, LineChart, FileText, Settings, X } from 'lucide-react'
+import { Cpu, RefreshCw, LineChart, FileText, Package, Cog, Settings, X } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import LogoMark from '@/components/LogoMark'
 
 const navItems = [
-  { path: '/devices', icon: Cpu, label: 'Devices' },
-  { path: '/cycles', icon: RefreshCw, label: 'Cycles' },
+  { path: '/devices',  icon: Cpu,       label: 'Devices'  },
+  { path: '/cycles',   icon: RefreshCw, label: 'Cycles'   },
   { path: '/analysis', icon: LineChart, label: 'Analysis' },
-  { path: '/report', icon: FileText, label: 'Report' },
+  { path: '/machines', icon: Cog,       label: 'Machines' },
+  { path: '/products', icon: Package,   label: 'Products' },
+  { path: '/report',   icon: FileText,  label: 'Report'   },
 ]
 
 interface SidebarProps {

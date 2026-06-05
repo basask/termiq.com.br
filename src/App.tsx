@@ -4,6 +4,8 @@ import DevicePage from '@/pages/DevicesPage'
 import CyclesPage from '@/pages/CyclesPage'
 import AnalysisPage from '@/pages/AnalysisPage'
 import ReportPage from '@/pages/ReportPage'
+import ProductsPage from '@/pages/ProductsPage'
+import MachinesPage from '@/pages/MachinesPage'
 
 export default function App() {
   return (
@@ -14,6 +16,8 @@ export default function App() {
           <Route path="devices" element={<DevicePage />} />
           <Route path="cycles" element={<CyclesPage />} />
           <Route path="analysis" element={<AnalysisPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="machines" element={<MachinesPage />} />
           <Route path="report" element={<ReportPage />} />
         </Route>
       </Routes>

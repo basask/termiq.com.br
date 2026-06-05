@@ -3,6 +3,7 @@ export type CycleStatus = 'Completed' | 'Active' | 'Warning'
 export interface Cycle {
   id: string
   machine: string
+  machineId?: string
   start: string
   end: string
   duration: string
