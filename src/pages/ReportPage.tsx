@@ -1,23 +1,36 @@
-import { FileText, Download, Calendar, BarChart3, TrendingUp, FileSpreadsheet } from 'lucide-react'
+import { FileText, Download, BarChart3, Calendar, TrendingUp, FileSpreadsheet } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useReports } from '@/application/useReports'
+import type { ReportTemplate } from '@/domain/report'
 
-const recentReports = [
-  { name: 'Weekly thermal summary — May 19–25', type: 'Weekly', generated: '2026-05-26', size: '218 KB', status: 'Ready' },
-  { name: 'Boiler-03 incident review', type: 'Incident', generated: '2026-05-25', size: '84 KB', status: 'Ready' },
-  { name: 'Monthly energy audit — April 2026', type: 'Monthly', generated: '2026-05-01', size: '1.2 MB', status: 'Ready' },
-  { name: 'Chiller anomaly analysis', type: 'Ad-hoc', generated: '2026-04-28', size: '156 KB', status: 'Ready' },
-]
+const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+  'Weekly summary': BarChart3,
+  'Incident report': FileText,
+  'Monthly audit': Calendar,
+  'Trend analysis': TrendingUp,
+}
 
-const reportTypes = [
-  { title: 'Weekly summary', description: 'Thermal KPIs, cycle counts, and alert history over 7 days.', icon: BarChart3 },
-  { title: 'Incident report', description: 'Root-cause timeline for a specific alert or anomaly event.', icon: FileText },
-  { title: 'Monthly audit', description: 'Energy usage, uptime, and efficiency metrics for compliance.', icon: Calendar },
-  { title: 'Trend analysis', description: 'Long-term drift detection across sensors and machines.', icon: TrendingUp },
-]
+function TemplateCard({ template }: { template: ReportTemplate }) {
+  const Icon = TEMPLATE_ICONS[template.title] ?? FileText
+  return (
+    <Card className="flex items-start gap-4 p-4 hover:border-tq-border-strong transition-colors cursor-pointer">
+      <div className="w-9 h-9 rounded-md bg-tq-green-50 flex items-center justify-center text-tq-green-700 shrink-0">
+        <Icon size={18} />
+      </div>
+      <div>
+        <div className="text-[13px] font-semibold text-tq-fg-1">{template.title}</div>
+        <div className="text-[12px] text-tq-fg-3 mt-0.5 leading-normal">{template.description}</div>
+      </div>
+    </Card>
+  )
+}
 
 export default function ReportPage() {
+  const { reports, templates } = useReports()
+
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -33,25 +46,12 @@ export default function ReportPage() {
         </Button>
       </div>
 
-      {/* Report type cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {reportTypes.map(({ title, description, icon: Icon }) => (
-          <Card
-            key={title}
-            className="flex items-start gap-4 p-4 hover:border-tq-border-strong transition-colors cursor-pointer"
-          >
-            <div className="w-9 h-9 rounded-md bg-tq-green-50 flex items-center justify-center text-tq-green-700 shrink-0">
-              <Icon size={18} />
-            </div>
-            <div>
-              <div className="text-[13px] font-semibold text-tq-fg-1">{title}</div>
-              <div className="text-[12px] text-tq-fg-3 mt-0.5 leading-normal">{description}</div>
-            </div>
-          </Card>
+        {templates.map((template) => (
+          <TemplateCard key={template.title} template={template} />
         ))}
       </div>
 
-      {/* Recent reports table */}
       <Card>
         <CardHeader className="p-4">
           <CardTitle>Recent reports</CardTitle>
@@ -72,14 +72,12 @@ export default function ReportPage() {
               </tr>
             </thead>
             <tbody>
-              {recentReports.map((r) => (
+              {reports.map((r) => (
                 <tr
                   key={r.name}
                   className="border-b border-tq-divider last:border-0 hover:bg-tq-bg-soft transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-tq-fg-1 max-w-xs truncate">
-                    {r.name}
-                  </td>
+                  <td className="px-4 py-3 font-medium text-tq-fg-1 max-w-xs truncate">{r.name}</td>
                   <td className="px-4 py-3">
                     <Badge variant="default">{r.type}</Badge>
                   </td>
