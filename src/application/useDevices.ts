@@ -1,29 +1,24 @@
-import { useEffect, useState } from 'react'
-import { getDevices } from '@/infrastructure/deviceRepository'
+import { useDeviceStore } from '@/store/useDeviceStore'
 import type { Device } from '@/domain/device'
 
-interface DevicesState {
+export interface DevicesViewModel {
   devices: Device[]
-  loading: boolean
   totalCount: number
   alertCount: number
+  createDevice: (data: Omit<Device, 'id' | 'cycles'>) => void
+  updateDevice: (id: string, patch: Partial<Omit<Device, 'id'>>) => void
+  removeDevice: (id: string) => void
 }
 
-export function useDevices(): DevicesState {
-  const [devices, setDevices] = useState<Device[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    getDevices().then((data) => {
-      setDevices(data)
-      setLoading(false)
-    })
-  }, [])
+export function useDevices(): DevicesViewModel {
+  const { devices, createDevice, updateDevice, removeDevice } = useDeviceStore()
 
   return {
     devices,
-    loading,
     totalCount: devices.length,
     alertCount: devices.filter((d) => d.status === 'Warning').length,
+    createDevice,
+    updateDevice,
+    removeDevice,
   }
 }
