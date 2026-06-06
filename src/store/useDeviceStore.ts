@@ -1,25 +1,42 @@
 import { create } from 'zustand'
-import { deviceRepository, nextDeviceId } from '@/infrastructure/deviceRepository'
+import { deviceRepository } from '@/infrastructure/deviceRepository'
 import type { Device } from '@/domain/device'
 
 interface DeviceStore {
   devices: Device[]
-  createDevice(device: Omit<Device, 'id' | 'cycles'>): void
-  updateDevice(id: string, patch: Partial<Omit<Device, 'id'>>): void
+  /** Create or update a device on USB detection. Preserves name and lastConnection on update. */
+  registerDevice(device: Device): void
+  /** Stamp lastConnection = now for the given device id. */
+  recordConnection(id: string): void
+  updateDevice(id: string, patch: Partial<Device>): void
   removeDevice(id: string): void
 }
 
 export const useDeviceStore = create<DeviceStore>((set, get) => ({
   devices: deviceRepository.getAll(),
 
-  createDevice(data) {
-    const device: Device = {
-      ...data,
-      id: nextDeviceId(get().devices),
-      cycles: '0',
+  registerDevice(device) {
+    deviceRepository.register(device)
+    const existing = get().devices.find((d) => d.id === device.id)
+    if (!existing) {
+      set((s) => ({ devices: [...s.devices, device] }))
+    } else {
+      set((s) => ({
+        devices: s.devices.map((d) =>
+          d.id === device.id
+            ? { ...d, lastSeen: device.lastSeen, status: device.status }
+            : d,
+        ),
+      }))
     }
-    deviceRepository.create(device)
-    set((s) => ({ devices: [...s.devices, device] }))
+  },
+
+  recordConnection(id) {
+    const ts = new Date().toISOString()
+    deviceRepository.recordConnection(id)
+    set((s) => ({
+      devices: s.devices.map((d) => (d.id === id ? { ...d, lastConnection: ts } : d)),
+    }))
   },
 
   updateDevice(id, patch) {

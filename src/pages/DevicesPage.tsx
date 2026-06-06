@@ -1,161 +1,298 @@
-import { useState } from 'react'
-import { Cpu, Thermometer, Gauge, Zap, Activity, Battery, BatteryFull, BatteryLowIcon, BatteryMediumIcon, Plus, Pencil, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Gauge, Usb, AlertTriangle, RefreshCw, Pencil, Trash2 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { DeviceFormDialog, DeleteConfirmDialog, type DeviceFormValues } from '@/components/DeviceDialog'
+import { EditDeviceDialog, DeleteConfirmDialog } from '@/components/DeviceDialog'
+import { ThermographPanel } from '@/components/ThermographPanel'
 import { useDevices } from '@/application/useDevices'
+import { useUsbDevices } from '@/application/useUsbDevices'
+import { useHidDevices } from '@/application/useHidDevices'
+import { ThermographDriver } from '@/infrastructure/thermographDriver'
+import { ThermographHidDriver } from '@/infrastructure/thermographHidDriver'
+import { USB_API_MODE } from '@/lib/usbApiFlag'
 import { deviceStatusBadgeVariant, deviceStatusDotColor } from '@/domain/device'
+import type { UsbDeviceInfo, UsbSupportStatus } from '@/application/useUsbDevices'
+import type { IThermographDriver } from '@/infrastructure/thermographDriver'
 import type { Device } from '@/domain/device'
 
-// ── small presentational helpers ─────────────────────────────────────────────
+// ── timestamp helper ──────────────────────────────────────────────────────────
 
-function BatteryIcon({ value }: { value: number }) {
-  if (value <= 0.0) return <Battery className="text-tq-danger" />
-  if (value <= 0.3) return <BatteryLowIcon className="text-tq-warning" />
-  if (value <= 0.6) return <BatteryMediumIcon className="text-tq-success" />
-  return <BatteryFull className="text-tq-success" />
+function formatRelative(iso: string | null): string {
+  if (!iso) return '—'
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (sec < 5)   return 'Just now'
+  if (sec < 60)  return `${sec}s ago`
+  const min = Math.floor(sec / 60)
+  if (min < 60)  return `${min}m ago`
+  const hrs = Math.floor(min / 60)
+  if (hrs < 24)  return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
 }
 
-function BatteryLevel({ battery }: { battery: number }) {
-  return (
-    <div className="flex flex-row gap-2 items-center">
-      <BatteryIcon value={battery} />
-      <span>{Math.trunc(battery * 100)}%</span>
-    </div>
-  )
+// ── unified device type ───────────────────────────────────────────────────────
+
+interface ConnectedDevice {
+  info: UsbDeviceInfo
+  createDriver: () => IThermographDriver
 }
 
 // ── dialog state ──────────────────────────────────────────────────────────────
 
 type DialogState =
-  | { type: 'create' }
   | { type: 'edit'; device: Device }
   | { type: 'delete'; device: Device }
   | null
 
+// ── devices section ───────────────────────────────────────────────────────────
+
+interface DevicesSectionProps {
+  apiMode: 'USB' | 'HID'
+  support: UsbSupportStatus
+  devices: ConnectedDevice[]
+  scanning: boolean
+  onScan: () => void
+  vendorId: number
+  productId: number
+  onConnected: (serialNumber: string) => void
+}
+
+function DevicesSection({
+  apiMode, support, devices, scanning, onScan, vendorId, productId, onConnected,
+}: DevicesSectionProps) {
+  const vendorHex = `0x${vendorId.toString(16).toUpperCase().padStart(4, '0')}`
+  const productHex = `0x${productId.toString(16).toUpperCase().padStart(4, '0')}`
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Usb size={15} className="text-tq-green-600" />
+          <span className="text-[14px] font-semibold text-tq-fg-1">
+            Connected {apiMode === 'HID' ? 'HID' : 'USB'} devices
+          </span>
+          <span className="font-mono text-[11px] text-tq-fg-4">
+            VID {vendorHex} · PID {productHex}
+          </span>
+        </div>
+        {support === 'supported' && (
+          <Button variant="secondary" size="sm" onClick={onScan} disabled={scanning}>
+            <RefreshCw size={13} className={scanning ? 'animate-spin' : ''} />
+            {scanning ? 'Scanning…' : 'Scan for devices'}
+          </Button>
+        )}
+      </div>
+
+      {support === 'checking' && (
+        <p className="text-[13px] text-tq-fg-3 pl-1">Checking USB access…</p>
+      )}
+
+      {support === 'unsupported' && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
+          <div className="space-y-1">
+            <p className="font-semibold">
+              {apiMode === 'HID' ? 'WebHID' : 'WebUSB'} is not available in this browser
+            </p>
+            <p className="text-amber-700">
+              USB device access requires Chrome or Edge served over HTTPS or localhost.
+            </p>
+            <ol className="mt-2 list-decimal list-inside space-y-1 text-amber-700">
+              <li>Open <span className="font-mono text-[11px]">chrome://flags/#enable-experimental-web-platform-features</span></li>
+              <li>Set the flag to <strong>Enabled</strong></li>
+              <li>Relaunch Chrome and return to this page</li>
+            </ol>
+          </div>
+        </div>
+      )}
+
+      {support === 'supported' && devices.length === 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-tq-border bg-tq-bg-soft px-4 py-3 text-[13px] text-tq-fg-3">
+          <Usb size={15} className="shrink-0 text-tq-fg-4" />
+          No devices found. Click <strong className="mx-1">Scan for devices</strong> to grant browser access and detect connected hardware.
+        </div>
+      )}
+
+      {support === 'supported' && devices.map(({ info, createDriver }) => {
+        const sn = info.serialNumber ?? `${info.vendorId}-${info.productId}`
+        return (
+          <ThermographPanel
+            key={sn}
+            device={info}
+            createDriver={createDriver}
+            onConnected={() => onConnected(sn)}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function DevicePage() {
-  const { devices, totalCount, alertCount, createDevice, updateDevice, removeDevice } = useDevices()
+  const { devices, totalCount, registerDevice, recordConnection, updateDevice, removeDevice } = useDevices()
+  const usbHook = useUsbDevices()
+  const hidHook = useHidDevices()
   const [dialog, setDialog] = useState<DialogState>(null)
 
-  function handleFormSubmit(values: DeviceFormValues) {
-    const patch = {
-      name: values.name,
-      status: values.status,
-      battery: values.batteryPct / 100,
-      channels: values.channels,
+  // Normalize both hooks into a unified ConnectedDevice[] based on the active API mode
+  const activeDevices = useMemo<ConnectedDevice[]>(() => {
+    if (USB_API_MODE === 'HID') {
+      return hidHook.devices.map(({ info, hidDevice }) => ({
+        info,
+        createDriver: () => new ThermographHidDriver(hidDevice),
+      }))
     }
-    if (dialog?.type === 'create') {
-      createDevice(patch)
-    } else if (dialog?.type === 'edit') {
-      updateDevice(dialog.device.id, patch)
+    return usbHook.devices.map(({ info, usbDevice }) => ({
+      info,
+      createDriver: () => new ThermographDriver(usbDevice),
+    }))
+  }, [hidHook.devices, usbHook.devices])
+
+  const activeSupport = USB_API_MODE === 'HID' ? hidHook.support : usbHook.support
+  const activeScan    = USB_API_MODE === 'HID' ? hidHook.scan    : usbHook.scan
+  const activeScanning = USB_API_MODE === 'HID' ? hidHook.scanning : usbHook.scanning
+
+  // Track which serial numbers were connected last render to detect disconnects
+  const prevSerialsRef = useRef<Set<string>>(new Set())
+
+  const makeDeviceId = useCallback(
+    (info: UsbDeviceInfo) => info.serialNumber ?? `${info.vendorId}-${info.productId}`,
+    [],
+  )
+
+  // Auto-register/update devices as they appear or disappear
+  useEffect(() => {
+    if (activeSupport !== 'supported') return
+
+    const now = new Date().toISOString()
+    const currentSerials = new Set<string>()
+
+    for (const { info } of activeDevices) {
+      const id = makeDeviceId(info)
+      currentSerials.add(id)
+      registerDevice({
+        id,
+        name: info.productName ?? 'Thermograph Device',
+        status: 'Healthy',
+        lastSeen: now,
+        lastConnection: null,
+      })
     }
-    setDialog(null)
-  }
+
+    for (const sn of prevSerialsRef.current) {
+      if (!currentSerials.has(sn)) {
+        updateDevice(sn, { status: 'Offline' })
+      }
+    }
+
+    prevSerialsRef.current = currentSerials
+  }, [activeDevices, activeSupport, registerDevice, updateDevice, makeDeviceId])
 
   function handleDelete() {
     if (dialog?.type === 'delete') removeDevice(dialog.device.id)
     setDialog(null)
   }
 
-  const kpis = [
-    { label: 'Total device', value: String(totalCount), icon: Cpu, color: 'text-tq-green-600' },
-    { label: 'Avg temperature', value: '81.1°C', icon: Thermometer, color: 'text-tq-heat-500' },
-    { label: 'Avg flow rate', value: '11.9 L/s', icon: Activity, color: 'text-tq-series-2' },
-    { label: 'Alerts active', value: String(alertCount), icon: Zap, color: 'text-tq-warning' },
-  ]
+  function handleRename(name: string) {
+    if (dialog?.type === 'edit') updateDevice(dialog.device.id, { name })
+    setDialog(null)
+  }
 
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Devices monitoring</h1>
-          <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-            Live · Pirabeiraba Plant · {totalCount} device · 38 sensors
-          </p>
-        </div>
-        <Button variant="primary" size="md" onClick={() => setDialog({ type: 'create' })}>
-          <Plus size={14} />
-          Add device
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Devices monitoring</h1>
+        <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
+          Live · Pirabeiraba Plant · {totalCount} device{totalCount !== 1 ? 's' : ''} in registry
+          {' · '}
+          <span className="text-tq-fg-4">{USB_API_MODE} mode</span>
+        </p>
       </div>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map(({ label, value, icon: Icon, color }) => (
-          <Card key={label}>
-            <CardHeader className="p-4 pb-4 flex-row items-start gap-3">
-              <div className={`mt-0.5 ${color}`}>
-                <Icon size={20} />
-              </div>
-              <div className="space-y-1.5">
-                <CardTitle className="font-mono text-[22px] leading-none">{value}</CardTitle>
-                <CardDescription className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3">
-                  {label}
-                </CardDescription>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
+      {/* Connected devices (WebHID or WebUSB based on VITE_TERMIQ_USB_API) */}
+      <DevicesSection
+        apiMode={USB_API_MODE}
+        support={activeSupport}
+        devices={activeDevices}
+        scanning={activeScanning}
+        onScan={activeScan}
+        vendorId={usbHook.VENDOR_ID}
+        productId={usbHook.PRODUCT_ID}
+        onConnected={(sn) => recordConnection(sn)}
+      />
 
-      {/* Device table */}
+      {/* Device registry table */}
       <Card>
         <CardHeader className="p-4">
-          <CardTitle>All devices</CardTitle>
+          <CardTitle>Device registry</CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-tq-bg-soft hover:bg-tq-bg-soft">
-                {['Device', 'ID', 'Status', 'Battery', 'Channels', 'Cycles', ''].map((h) => (
+                {['Device', 'Serial number', 'Status', 'Last seen', 'Last connection', ''].map((h) => (
                   <TableHead key={h}>{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {devices.map((device) => (
-                <TableRow key={device.id}>
-                  <TableCell className="font-semibold text-tq-fg-1">{device.name}</TableCell>
-                  <TableCell className="font-mono text-[11px] text-tq-fg-3">{device.id}</TableCell>
-                  <TableCell>
-                    <Badge variant={deviceStatusBadgeVariant[device.status]}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${deviceStatusDotColor[device.status]}`} />
-                      {device.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-tq-fg-1">
-                    <BatteryLevel battery={device.battery} />
-                  </TableCell>
-                  <TableCell className="font-mono text-tq-fg-1">{device.channels}</TableCell>
-                  <TableCell className="font-mono text-tq-fg-1">{device.cycles}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Edit device"
-                        onClick={() => setDialog({ type: 'edit', device })}
-                      >
-                        <Pencil size={13} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remove device"
-                        className="text-tq-danger hover:text-tq-danger hover:bg-red-50"
-                        onClick={() => setDialog({ type: 'delete', device })}
-                      >
-                        <Trash2 size={13} />
-                      </Button>
-                    </div>
+              {devices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-[13px] text-tq-fg-3">
+                    No devices in registry yet. Connect a device via USB to register it automatically.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                devices.map((device) => (
+                  <TableRow key={device.id}>
+                    <TableCell className="font-semibold text-tq-fg-1">{device.name}</TableCell>
+                    <TableCell className="font-mono text-[11px] text-tq-fg-3">{device.id}</TableCell>
+                    <TableCell>
+                      <Badge variant={deviceStatusBadgeVariant[device.status]}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${deviceStatusDotColor[device.status]}`} />
+                        {device.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell
+                      className="font-mono text-[12px] text-tq-fg-2"
+                      title={device.lastSeen ?? undefined}
+                    >
+                      {formatRelative(device.lastSeen)}
+                    </TableCell>
+                    <TableCell
+                      className="font-mono text-[12px] text-tq-fg-2"
+                      title={device.lastConnection ?? undefined}
+                    >
+                      {formatRelative(device.lastConnection)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Rename device"
+                          onClick={() => setDialog({ type: 'edit', device })}
+                        >
+                          <Pencil size={13} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove device"
+                          className="text-tq-danger hover:text-tq-danger hover:bg-red-50"
+                          onClick={() => setDialog({ type: 'delete', device })}
+                        >
+                          <Trash2 size={13} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -168,12 +305,11 @@ export default function DevicePage() {
       </div>
 
       {/* Dialogs */}
-      {(dialog?.type === 'create' || dialog?.type === 'edit') && (
-        <DeviceFormDialog
-          mode={dialog.type}
-          device={dialog.type === 'edit' ? dialog.device : undefined}
+      {dialog?.type === 'edit' && (
+        <EditDeviceDialog
+          device={dialog.device}
           onClose={() => setDialog(null)}
-          onSubmit={handleFormSubmit}
+          onSubmit={handleRename}
         />
       )}
 
