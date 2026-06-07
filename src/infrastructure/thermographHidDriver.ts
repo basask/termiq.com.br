@@ -57,6 +57,7 @@ export class ThermographHidDriver implements IThermographDriver {
     await this.device.sendReport(0, initPayload)
 
     await delay(50)
+    this.inputQueue = [] // discard any unsolicited reports from the init sequence
   }
 
   async close(): Promise<void> {
@@ -99,10 +100,26 @@ export class ThermographHidDriver implements IThermographDriver {
     await this.device.sendReport(0, data)
   }
 
-  // Converts event-driven inputreport into a pull-based recv() for the protocol loop
-  private recv(): Promise<Uint8Array> {
+  // Converts event-driven inputreport into a pull-based recv() for the protocol loop.
+  // Rejects after timeoutMs if no inputreport arrives (device not responding → error, not hang).
+  private recv(timeoutMs = 3000): Promise<Uint8Array> {
     if (this.inputQueue.length > 0) return Promise.resolve(this.inputQueue.shift()!)
-    return new Promise<Uint8Array>((resolve) => this.inputWaiters.push(resolve))
+
+    let resolveWaiter!: (data: Uint8Array) => void
+    const waitPromise = new Promise<Uint8Array>((resolve) => {
+      resolveWaiter = resolve
+      this.inputWaiters.push(resolve)
+    })
+
+    const timeoutPromise = new Promise<Uint8Array>((_, reject) =>
+      setTimeout(() => {
+        const idx = this.inputWaiters.indexOf(resolveWaiter)
+        if (idx >= 0) this.inputWaiters.splice(idx, 1)
+        reject(new Error(`Device response timeout (${timeoutMs}ms) — no inputreport received`))
+      }, timeoutMs),
+    )
+
+    return Promise.race([waitPromise, timeoutPromise])
   }
 
   private async cmd(cmdId: number, p1 = 0, p2 = 0, p3 = 0): Promise<[number, number, number]> {
@@ -153,16 +170,11 @@ export class ThermographHidDriver implements IThermographDriver {
   }
 
   async getInfo(): Promise<DeviceInfo> {
-
-    console.log(`[HID] getInfo::start`);
-
     const idBytes = await this.ping()
     const modelHint = [idBytes[0], idBytes[1]]
       .filter((b) => b >= 0x20 && b < 0x7f)
       .map((b) => String.fromCharCode(b))
       .join('')
-
-    console.log(`[HID] getInfo::end modelHint=${modelHint}`);
 
     return {
       modelHint,
@@ -192,7 +204,6 @@ export class ThermographHidDriver implements IThermographDriver {
         startDatetime: `${2000 + dateB[0]}-${pad2(dateB[1])}-${pad2(dateB[2])} ${pad2(timeB[0])}:${pad2(timeB[1])}:${pad2(timeB[2])}`,
         meta,
       })
-      console.log(`records.length=${records.length}, idx=${idx}`);
       idx++
     }
 

@@ -1,4 +1,5 @@
-import { RefreshCw, Clock, CheckCircle2, AlertCircle, Timer } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { RefreshCw, Clock, CheckCircle2, AlertCircle, Timer, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useCycles } from '@/application/useCycles'
@@ -16,6 +17,15 @@ function CycleRow({ cycle: c }: { cycle: Cycle }) {
       <td className="px-4 py-3 font-mono text-tq-fg-1">{c.temp}</td>
       <td className="px-4 py-3">
         <Badge variant={cycleStatusBadgeVariant[c.status] ?? 'default'}>{c.status}</Badge>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Link
+          to={`/cycle/${encodeURIComponent(c.id)}`}
+          className="inline-flex items-center gap-1 text-[12px] text-tq-fg-3 hover:text-tq-fg-1 font-medium"
+        >
+          <ExternalLink size={12} />
+          View
+        </Link>
       </td>
     </tr>
   )
@@ -69,7 +79,7 @@ export default function CyclesPage() {
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr className="bg-tq-bg-soft border-b border-tq-border">
-                {['Cycle ID', 'Machine', 'Start', 'End', 'Duration', 'Peak temp', 'Status'].map((h) => (
+                {['Cycle ID', 'Machine', 'Start', 'End', 'Duration', 'Peak temp', 'Status', ''].map((h) => (
                   <th
                     key={h}
                     className="text-left text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 px-4 py-2.5"
