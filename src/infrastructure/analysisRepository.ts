@@ -77,6 +77,17 @@ const chartBaseOption: EChartsOption = {
     },
   ],
   brush: { toolbox: ['rect', 'polygon', 'lineX', 'lineY', 'keep', 'clear'], xAxisIndex: 0 },
+  toolbox: {
+    // left: 'center',
+    // itemSize: 25,
+    // top: 55,
+    feature: {
+      dataZoom: {
+        yAxisIndex: 'none'
+      },
+      restore: {}
+    }
+  },
   series: [],
 }
 

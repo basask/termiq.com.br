@@ -94,6 +94,7 @@ export function useThermograph(
       return
     }
     await runOp('Reading device info…', async (d) => ({ info: await d.getInfo() }))
+    await runOp('Listing cycles…', async (d) => ({ cycles: await d.listRecords() }))
   }, [deviceKey, createDriver, onConnected, patch, runOp])
 
   const disconnect = useCallback(async () => {
