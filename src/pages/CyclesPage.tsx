@@ -1,16 +1,34 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { RefreshCw, Clock, CheckCircle2, AlertCircle, Timer, ExternalLink } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Layers, RefreshCw, Timer, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useCycles } from '@/application/useCycles'
+import { useDeviceStore } from '@/store/useDeviceStore'
+import { useMachineStore } from '@/store/useMachineStore'
+import { useProductStore } from '@/store/useProductStore'
 import { cycleStatusBadgeVariant } from '@/domain/cycle'
 import type { Cycle } from '@/domain/cycle'
 
-function CycleRow({ cycle: c }: { cycle: Cycle }) {
+// ── row ───────────────────────────────────────────────────────────────────────
+
+function CycleRow({
+  cycle: c,
+  deviceName,
+  machineName,
+  productName,
+}: {
+  cycle: Cycle
+  deviceName: string
+  machineName: string
+  productName: string
+}) {
   return (
     <tr className="border-b border-tq-divider last:border-0 hover:bg-tq-bg-soft transition-colors">
       <td className="px-4 py-3 font-mono text-[11px] text-tq-fg-3">{c.id}</td>
-      <td className="px-4 py-3 font-medium text-tq-fg-1">{c.machine}</td>
+      <td className="px-4 py-3 font-medium text-tq-fg-1">{deviceName}</td>
+      <td className="px-4 py-3 text-tq-fg-1">{machineName}</td>
+      <td className="px-4 py-3 text-tq-fg-1">{productName}</td>
       <td className="px-4 py-3 font-mono text-tq-fg-2">{c.start}</td>
       <td className="px-4 py-3 font-mono text-tq-fg-2">{c.end}</td>
       <td className="px-4 py-3 font-mono text-tq-fg-1">{c.duration}</td>
@@ -31,22 +49,38 @@ function CycleRow({ cycle: c }: { cycle: Cycle }) {
   )
 }
 
+// ── page ──────────────────────────────────────────────────────────────────────
+
 export default function CyclesPage() {
   const { cycles, warningCount } = useCycles()
+  const devices  = useDeviceStore((s) => s.devices)
+  const machines = useMachineStore((s) => s.machines)
+  const products = useProductStore((s) => s.products)
+
+  const deviceNameById  = useMemo(() => new Map(devices.map((d) => [d.id, d.name])),  [devices])
+  const machineNameById = useMemo(() => new Map(machines.map((m) => [m.id, m.name])), [machines])
+  const productNameById = useMemo(() => new Map(products.map((p) => [p.id, p.name])), [products])
+
+  const uniqueDevices = useMemo(
+    () => new Set(cycles.map((c) => c.deviceKey).filter(Boolean)).size,
+    [cycles],
+  )
 
   const kpis = [
-    { label: 'Cycles today', value: '84', icon: RefreshCw, color: 'text-tq-green-600' },
-    { label: 'Avg cycle time', value: '47 min', icon: Clock, color: 'text-tq-fg-3' },
-    { label: 'Completed', value: '82', icon: CheckCircle2, color: 'text-tq-success' },
-    { label: 'With warnings', value: String(warningCount), icon: AlertCircle, color: 'text-tq-warning' },
+    { label: 'Total cycles',  value: String(cycles.length),  icon: RefreshCw,    color: 'text-tq-green-600' },
+    { label: 'Devices',       value: String(uniqueDevices),  icon: Layers,       color: 'text-tq-fg-3' },
+    { label: 'Completed',     value: String(cycles.filter((c) => c.status === 'Completed').length), icon: CheckCircle2, color: 'text-tq-success' },
+    { label: 'With warnings', value: String(warningCount),   icon: AlertCircle,  color: 'text-tq-warning' },
   ]
+
+  const HEADERS = ['Cycle ID', 'Device', 'Machine', 'Product', 'Start', 'End', 'Duration', 'Peak temp', 'Status', '']
 
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Cycles</h1>
         <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-          Operational cycle log · today · 5 machines
+          Device-sourced cycle log · {cycles.length} cycle{cycles.length !== 1 ? 's' : ''} · {uniqueDevices} device{uniqueDevices !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -58,12 +92,8 @@ export default function CyclesPage() {
                 <Icon size={20} />
               </div>
               <div>
-                <div className="font-mono text-[22px] font-semibold text-tq-fg-1 leading-none">
-                  {value}
-                </div>
-                <div className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 mt-1.5">
-                  {label}
-                </div>
+                <div className="font-mono text-[22px] font-semibold text-tq-fg-1 leading-none">{value}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 mt-1.5">{label}</div>
               </div>
             </CardContent>
           </Card>
@@ -72,29 +102,46 @@ export default function CyclesPage() {
 
       <Card>
         <CardHeader className="p-4">
-          <CardTitle>Recent cycles</CardTitle>
-          <CardDescription>Last 5 cycles across all machines</CardDescription>
+          <CardTitle>Fetched cycles</CardTitle>
+          <CardDescription>All cycles downloaded from connected devices</CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-[13px] border-collapse">
-            <thead>
-              <tr className="bg-tq-bg-soft border-b border-tq-border">
-                {['Cycle ID', 'Machine', 'Start', 'End', 'Duration', 'Peak temp', 'Status', ''].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 px-4 py-2.5"
-                  >
-                    {h}
-                  </th>
+          {cycles.length === 0 ? (
+            <div className="flex items-center gap-3 px-4 py-8 text-[13px] text-tq-fg-3">
+              <RefreshCw size={15} className="shrink-0 text-tq-fg-4" />
+              No cycles yet. Connect a device and fetch cycles from the Devices page.
+            </div>
+          ) : (
+            <table className="w-full text-[13px] border-collapse">
+              <thead>
+                <tr className="bg-tq-bg-soft border-b border-tq-border">
+                  {HEADERS.map((h) => (
+                    <th
+                      key={h}
+                      className="text-left text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 px-4 py-2.5 whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {cycles.map((cycle) => (
+                  <CycleRow
+                    key={cycle.id}
+                    cycle={cycle}
+                    deviceName={
+                      cycle.deviceKey
+                        ? (deviceNameById.get(cycle.deviceKey) ?? cycle.machine)
+                        : cycle.machine
+                    }
+                    machineName={cycle.machineId ? (machineNameById.get(cycle.machineId) ?? '—') : '—'}
+                    productName={cycle.productId ? (productNameById.get(cycle.productId) ?? '—') : '—'}
+                  />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {cycles.map((cycle) => (
-                <CycleRow key={cycle.id} cycle={cycle} />
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
 

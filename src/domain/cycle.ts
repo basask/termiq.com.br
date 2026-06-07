@@ -3,7 +3,10 @@ export type CycleStatus = 'Completed' | 'Active' | 'Warning'
 export interface Cycle {
   id: string
   machine: string
+  /** ID of the Machine (from useMachineStore) this cycle ran on. */
   machineId?: string
+  /** ID of the Product (from useProductStore) this cycle was produced for. */
+  productId?: string
   start: string
   end: string
   duration: string

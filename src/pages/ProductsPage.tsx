@@ -1,11 +1,30 @@
-import { useState } from 'react'
-import { Package, Layers, Weight, Maximize2, Plus, Pencil, Trash2 } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Package, Layers, Weight, Maximize2, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ProductFormDialog, DeleteProductDialog, formToProduct, type ProductFormValues } from '@/components/ProductDialog'
 import { useProducts } from '@/application/useProducts'
+import { useCycles } from '@/application/useCycles'
 import type { Product } from '@/domain/product'
+import type { Cycle } from '@/domain/cycle'
+
+// ── linked cycles indicator ───────────────────────────────────────────────────
+
+function ProductCycles({ cycles }: { cycles: Cycle[] }) {
+  if (cycles.length === 0) {
+    return <span className="text-[12px] text-tq-fg-4">—</span>
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-tq-bg-soft border border-tq-divider font-mono text-[11px] text-tq-fg-2"
+      title={cycles.map((c) => `${c.id} · ${c.start}`).join('\n')}
+    >
+      <RefreshCw size={11} className="text-tq-fg-4" />
+      {cycles.length}
+    </span>
+  )
+}
 
 // ── dialog state ──────────────────────────────────────────────────────────────
 
@@ -22,6 +41,18 @@ export default function ProductsPage() {
     products, totalCount, uniqueMaterials, avgWeight, avgSurfaceArea,
     createProduct, updateProduct, removeProduct,
   } = useProducts()
+  const { cycles } = useCycles()
+
+  const cyclesByProductId = useMemo(() => {
+    const map = new Map<string, Cycle[]>()
+    for (const c of cycles) {
+      if (!c.productId) continue
+      const list = map.get(c.productId)
+      if (list) list.push(c)
+      else map.set(c.productId, [c])
+    }
+    return map
+  }, [cycles])
 
   const [dialog, setDialog] = useState<DialogState>(null)
 
@@ -91,7 +122,7 @@ export default function ProductsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-tq-bg-soft hover:bg-tq-bg-soft">
-                {['Product', 'SKU', 'Material', 'Dimensions (mm)', 'Weight', 'Surface area', 'Notes', ''].map((h) => (
+                {['Product', 'SKU', 'Material', 'Dimensions (mm)', 'Weight', 'Surface area', 'Cycles', 'Notes', ''].map((h) => (
                   <TableHead key={h}>{h}</TableHead>
                 ))}
               </TableRow>
@@ -114,6 +145,9 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell className="font-mono text-tq-fg-1 whitespace-nowrap">
                     {product.surface_area} m²
+                  </TableCell>
+                  <TableCell>
+                    <ProductCycles cycles={cyclesByProductId.get(product.id) ?? []} />
                   </TableCell>
                   <TableCell className="text-[12px] text-tq-fg-3 max-w-[200px] truncate">
                     {product.notes || <span className="text-tq-fg-4 italic">—</span>}
@@ -144,7 +178,7 @@ export default function ProductsPage() {
 
               {products.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-12 text-center text-[13px] text-tq-fg-3">
+                  <TableCell colSpan={9} className="py-12 text-center text-[13px] text-tq-fg-3">
                     No products yet. Add the first one.
                   </TableCell>
                 </TableRow>

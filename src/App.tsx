@@ -3,6 +3,7 @@ import Layout from '@/components/Layout'
 import DevicePage from '@/pages/DevicesPage'
 import CyclesPage from '@/pages/CyclesPage'
 import CyclePage from '@/pages/CyclePage'
+import AnalysesPage from '@/pages/AnalysesPage'
 import AnalysisPage from '@/pages/AnalysisPage'
 import ReportPage from '@/pages/ReportPage'
 import ProductsPage from '@/pages/ProductsPage'
@@ -17,7 +18,8 @@ export default function App() {
           <Route path="devices" element={<DevicePage />} />
           <Route path="cycles" element={<CyclesPage />} />
           <Route path="cycle/:cycleId" element={<CyclePage />} />
-          <Route path="analysis" element={<AnalysisPage />} />
+          <Route path="analyses" element={<AnalysesPage />} />
+          <Route path="analysis/:analysisId" element={<AnalysisPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="machines" element={<MachinesPage />} />
           <Route path="report" element={<ReportPage />} />

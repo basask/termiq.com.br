@@ -1,6 +1,7 @@
 import { DataFrame, readCSV } from 'danfojs'
 import type { EChartsOption, MarkLineComponentOption } from 'echarts'
 import type { Kpi } from '@/domain/analysis'
+import type { Cycle } from '@/domain/cycle'
 
 async function loadTimeseries(path: string): Promise<DataFrame> {
   const columns = {
@@ -102,6 +103,85 @@ export function buildChartOption(timeseries: DataFrame): EChartsOption {
     legend: { ...chartBaseOption.legend, data: legendData },
     series,
   }
+}
+
+const CHANNEL_COLORS = [
+  '#22c55e', '#f97316', '#14b8a6', '#ef4444',
+  '#8b5cf6', '#ec4899', '#eab308', '#06b6d4',
+]
+
+export function buildChartOptionFromCycle(cycle: Cycle): EChartsOption {
+  const { samples, channels = 1, interval = 1, start } = cycle
+  if (!samples || samples.length === 0) return { ...chartBaseOption, series: [] }
+
+  const [datePart, timePart] = start.split(' ')
+  const [y, mo, d] = datePart.split('-').map(Number)
+  const [h, mi, s] = timePart.split(':').map(Number)
+  const startMs = new Date(y, mo - 1, d, h, mi, s).getTime()
+
+  const timeLabels = samples.map((_, i) =>
+    new Date(startMs + i * interval * 1000).toTimeString().slice(0, 8),
+  )
+
+  const series: EChartsOption['series'] = Array.from({ length: channels }, (_, ch) => ({
+    name: `Ch ${ch + 1} (°C)`,
+    type: 'line' as const,
+    yAxisIndex: 0,
+    data: samples.map((row) => row[ch] ?? null),
+    symbol: 'none',
+    lineStyle: { width: 1.5, color: CHANNEL_COLORS[ch % CHANNEL_COLORS.length] },
+    color: CHANNEL_COLORS[ch % CHANNEL_COLORS.length],
+  }))
+
+  return {
+    ...chartBaseOption,
+    xAxis: { ...chartBaseOption.xAxis, data: timeLabels },
+    legend: { ...chartBaseOption.legend, data: (series as Array<{ name: string }>).map((s) => s.name) },
+    series,
+  }
+}
+
+export function buildKpisFromCycle(cycle: Cycle): Kpi[] {
+  const { samples, channels = 1, interval = 1, duration } = cycle
+  if (!samples || samples.length === 0) return []
+
+  const allTemps = samples.flat()
+  const peak = Math.max(...allTemps)
+  const avg  = allTemps.reduce((a, b) => a + b, 0) / allTemps.length
+
+  const highThreshold = peak * 0.8
+  const dwellCount = samples.filter((row) => Math.max(...row) >= highThreshold).length
+  const dwellSecs  = dwellCount * interval
+  const dwellMin   = Math.floor(dwellSecs / 60)
+  const dwellSec   = Math.round(dwellSecs % 60)
+  const dwellStr   = dwellMin > 0 ? `${dwellMin}min ${dwellSec}s` : `${dwellSec}s`
+
+  return [
+    {
+      label: 'Peak temperature',
+      value: `${peak.toFixed(1)}°C`,
+      delta: `avg ${avg.toFixed(1)}°C across all channels`,
+      deltaOk: true,
+    },
+    {
+      label: 'Dwell above 80% peak',
+      value: dwellStr,
+      delta: `≥ ${highThreshold.toFixed(0)}°C threshold`,
+      deltaOk: true,
+    },
+    {
+      label: 'Cycle duration',
+      value: duration,
+      delta: `${samples.length} samples · ${channels} ch`,
+      deltaOk: true,
+    },
+    {
+      label: 'Interval',
+      value: `${interval}s`,
+      delta: `${channels} channel${channels !== 1 ? 's' : ''}`,
+      deltaOk: true,
+    },
+  ]
 }
 
 export const ANALYSIS_KPIS: Kpi[] = [

@@ -8,7 +8,7 @@ import LogoMark from '@/components/LogoMark'
 const navItems = [
   { path: '/devices',  icon: Cpu,       label: 'Devices'  },
   { path: '/cycles',   icon: RefreshCw, label: 'Cycles'   },
-  { path: '/analysis', icon: LineChart, label: 'Analysis' },
+  { path: '/analyses', icon: LineChart, label: 'Analyses' },
   { path: '/machines', icon: Cog,       label: 'Machines' },
   { path: '/products', icon: Package,   label: 'Products' },
   { path: '/report',   icon: FileText,  label: 'Report'   },
@@ -50,7 +50,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto min-h-0">
         {navItems.map(({ path, icon: Icon, label }) => {
           const isActive =
-            location.pathname === path || (path === '/devices' && location.pathname === '/')
+            location.pathname === path ||
+            (path === '/devices'  && location.pathname === '/') ||
+            (path === '/analyses' && location.pathname.startsWith('/analysis'))
           return (
             <NavLink
               key={path}

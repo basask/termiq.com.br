@@ -1,10 +1,14 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, FileDown, Thermometer, Clock, BarChart2, Layers } from 'lucide-react'
+import { ArrowLeft, FileDown, Thermometer, Clock, BarChart2, Layers, Cpu, Package, LineChart } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { useCycleStore } from '@/store/useCycleStore'
+import { useDeviceStore } from '@/store/useDeviceStore'
+import { useMachineStore } from '@/store/useMachineStore'
+import { useProductStore } from '@/store/useProductStore'
 import { cycleStatusBadgeVariant } from '@/domain/cycle'
 import type { Cycle } from '@/domain/cycle'
 
@@ -128,8 +132,18 @@ function TemperatureTable({ cycle }: { cycle: Cycle }) {
 
 export default function CyclePage() {
   const { cycleId } = useParams<{ cycleId: string }>()
-  const id    = cycleId ?? ''
-  const cycle = useCycleStore((s) => s.cycles.find((c) => c.id === id))
+  const id = cycleId ?? ''
+
+  const cycle      = useCycleStore((s) => s.cycles.find((c) => c.id === id))
+  const updateCycle = useCycleStore((s) => s.updateCycle)
+
+  const deviceName = useDeviceStore((s) => {
+    if (!cycle?.deviceKey) return cycle?.machine ?? '—'
+    return s.devices.find((d) => d.id === cycle.deviceKey)?.name ?? cycle.machine
+  })
+
+  const machines = useMachineStore((s) => s.machines)
+  const products = useProductStore((s) => s.products)
 
   if (!cycle) {
     return (
@@ -146,8 +160,8 @@ export default function CyclePage() {
     )
   }
 
-  const allTemps  = cycle.samples?.flat() ?? []
-  const peakTemp  = allTemps.length > 0 ? Math.max(...allTemps).toFixed(1) : null
+  const allTemps = cycle.samples?.flat() ?? []
+  const peakTemp = allTemps.length > 0 ? Math.max(...allTemps).toFixed(1) : null
 
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
@@ -165,31 +179,103 @@ export default function CyclePage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Cycle detail</h1>
           <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-            {cycle.machine}
+            {deviceName}
             {cycle.deviceKey && <> · <span className="text-tq-fg-4">{cycle.deviceKey}</span></>}
           </p>
         </div>
-        <Badge variant={cycleStatusBadgeVariant[cycle.status] ?? 'default'}>
-          {cycle.status}
-        </Badge>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant={cycleStatusBadgeVariant[cycle.status] ?? 'default'}>
+            {cycle.status}
+          </Badge>
+          {cycle.machineId && cycle.productId && (
+            <Button asChild variant="secondary" size="sm">
+              <Link to={`/analysis/new?cycleId=${encodeURIComponent(cycle.id)}`}>
+                <LineChart size={13} />
+                Create analysis
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* meta kpis */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <MetaCard icon={Clock}      label="Start"     value={cycle.start}    mono />
-        <MetaCard icon={Clock}      label="End"       value={cycle.end}      mono />
-        <MetaCard icon={Clock}      label="Duration"  value={cycle.duration} />
+        <MetaCard icon={Clock}       label="Start"     value={cycle.start}    mono />
+        <MetaCard icon={Clock}       label="End"       value={cycle.end}      mono />
+        <MetaCard icon={Clock}       label="Duration"  value={cycle.duration} />
         {peakTemp !== null
           ? <MetaCard icon={Thermometer} label="Peak temp" value={`${peakTemp} °C`} />
           : <MetaCard icon={Thermometer} label="Peak temp" value={cycle.temp} />
         }
         {cycle.channels !== undefined && (
-          <MetaCard icon={Layers}   label="Channels"  value={String(cycle.channels)} />
+          <MetaCard icon={Layers}    label="Channels"  value={String(cycle.channels)} />
         )}
         {cycle.interval !== undefined && (
-          <MetaCard icon={BarChart2} label="Interval" value={`${cycle.interval} s`} />
+          <MetaCard icon={BarChart2} label="Interval"  value={`${cycle.interval} s`} />
         )}
       </div>
+
+      {/* associations */}
+      <Card>
+        <CardHeader className="p-4">
+          <CardTitle>Associations</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Machine */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-tq-fg-4">
+              <Cpu size={12} />
+              Machine
+            </label>
+            <Select
+              value={cycle.machineId ?? ''}
+              onChange={(e) =>
+                updateCycle(cycle.id, { machineId: e.target.value || undefined })
+              }
+            >
+              <option value="">— not assigned —</option>
+              {machines.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+            {machines.length === 0 && (
+              <p className="text-[12px] text-tq-fg-4">
+                No machines in the system.{' '}
+                <Link to="/machines" className="underline hover:text-tq-fg-2">Add one</Link>.
+              </p>
+            )}
+          </div>
+
+          {/* Product */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-tq-fg-4">
+              <Package size={12} />
+              Product
+            </label>
+            <Select
+              value={cycle.productId ?? ''}
+              onChange={(e) =>
+                updateCycle(cycle.id, { productId: e.target.value || undefined })
+              }
+            >
+              <option value="">— not assigned —</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+            {products.length === 0 && (
+              <p className="text-[12px] text-tq-fg-4">
+                No products in the system.{' '}
+                <Link to="/products" className="underline hover:text-tq-fg-2">Add one</Link>.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* temperature table (device cycles only) */}
       {cycle.samples ? (

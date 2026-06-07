@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { getCycles } from '@/infrastructure/cycleRepository'
 import type { Cycle } from '@/domain/cycle'
 
 interface CycleStore {
@@ -7,6 +6,7 @@ interface CycleStore {
   /** Set of cycle IDs for O(1) duplicate checks — changes reference when cycles are added. */
   cycleIds: Set<string>
   addCycle(cycle: Cycle): void
+  updateCycle(id: string, patch: Partial<Pick<Cycle, 'machineId' | 'productId'>>): void
 }
 
 export const useCycleStore = create<CycleStore>((set, get) => ({
@@ -20,12 +20,10 @@ export const useCycleStore = create<CycleStore>((set, get) => ({
       cycleIds: new Set([...s.cycleIds, cycle.id]),
     }))
   },
-}))
 
-// Load seed data on module initialisation (before any component mounts).
-getCycles().then((initial) => {
-  const { cycleIds, addCycle } = useCycleStore.getState()
-  for (const c of initial) {
-    if (!cycleIds.has(c.id)) addCycle(c)
-  }
-})
+  updateCycle(id, patch) {
+    set((s) => ({
+      cycles: s.cycles.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }))
+  },
+}))
