@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { FileText, Download, BarChart3, Calendar, TrendingUp, FileSpreadsheet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -29,20 +30,24 @@ function TemplateCard({ template }: { template: ReportTemplate }) {
 }
 
 export default function ReportPage() {
+  const { t } = useTranslation()
   const { reports, templates } = useReports()
+
+  const tableHeaders = [
+    t('report.colName'), t('report.colType'), t('report.colGenerated'),
+    t('report.colSize'), t('report.colStatus'), '',
+  ]
 
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Reports</h1>
-          <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-            Generate and download operational reports
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">{t('report.title')}</h1>
+          <p className="font-mono text-[12px] text-tq-fg-3 mt-1">{t('report.subtitle')}</p>
         </div>
         <Button variant="primary" size="md">
           <FileSpreadsheet size={14} />
-          New report
+          {t('report.newReport')}
         </Button>
       </div>
 
@@ -54,16 +59,16 @@ export default function ReportPage() {
 
       <Card>
         <CardHeader className="p-4">
-          <CardTitle>Recent reports</CardTitle>
-          <CardDescription>Previously generated reports available for download</CardDescription>
+          <CardTitle>{t('report.recentReports')}</CardTitle>
+          <CardDescription>{t('report.recentReportsDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr className="bg-tq-bg-soft border-b border-tq-border">
-                {['Report name', 'Type', 'Generated', 'Size', 'Status', ''].map((h) => (
+                {tableHeaders.map((h, i) => (
                   <th
-                    key={h}
+                    key={i}
                     className="text-left text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 px-4 py-2.5"
                   >
                     {h}
@@ -89,7 +94,7 @@ export default function ReportPage() {
                   <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" className="gap-1.5">
                       <Download size={12} />
-                      Download
+                      {t('report.download')}
                     </Button>
                   </td>
                 </tr>

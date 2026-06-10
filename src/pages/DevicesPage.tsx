@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Gauge, Usb, AlertTriangle, RefreshCw, Pencil, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,16 +21,16 @@ import type { Device } from '@/domain/device'
 
 // ── timestamp helper ──────────────────────────────────────────────────────────
 
-function formatRelative(iso: string | null): string {
+function formatRelative(iso: string | null, t: TFunction): string {
   if (!iso) return '—'
   const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (sec < 5)   return 'Just now'
-  if (sec < 60)  return `${sec}s ago`
+  if (sec < 5)   return t('devices.justNow')
+  if (sec < 60)  return t('devices.secondsAgo', { count: sec })
   const min = Math.floor(sec / 60)
-  if (min < 60)  return `${min}m ago`
+  if (min < 60)  return t('devices.minutesAgo', { count: min })
   const hrs = Math.floor(min / 60)
-  if (hrs < 24)  return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+  if (hrs < 24)  return t('devices.hoursAgo', { count: hrs })
+  return t('devices.daysAgo', { count: Math.floor(hrs / 24) })
 }
 
 // ── unified device type ───────────────────────────────────────────────────────
@@ -61,6 +63,7 @@ interface DevicesSectionProps {
 function DevicesSection({
   apiMode, support, devices, scanning, onScan, vendorId, productId, onConnected,
 }: DevicesSectionProps) {
+  const { t } = useTranslation()
   const vendorHex = `0x${vendorId.toString(16).toUpperCase().padStart(4, '0')}`
   const productHex = `0x${productId.toString(16).toUpperCase().padStart(4, '0')}`
 
@@ -70,7 +73,7 @@ function DevicesSection({
         <div className="flex items-center gap-2">
           <Usb size={15} className="text-tq-green-600" />
           <span className="text-[14px] font-semibold text-tq-fg-1">
-            Connected {apiMode === 'HID' ? 'HID' : 'USB'} devices
+            {t('devices.connectedDevices', { api: apiMode === 'HID' ? 'HID' : 'USB' })}
           </span>
           <span className="font-mono text-[11px] text-tq-fg-4">
             VID {vendorHex} · PID {productHex}
@@ -79,13 +82,13 @@ function DevicesSection({
         {support === 'supported' && (
           <Button variant="secondary" size="sm" onClick={onScan} disabled={scanning}>
             <RefreshCw size={13} className={scanning ? 'animate-spin' : ''} />
-            {scanning ? 'Scanning…' : 'Scan for devices'}
+            {scanning ? t('devices.scanning') : t('devices.scanForDevices')}
           </Button>
         )}
       </div>
 
       {support === 'checking' && (
-        <p className="text-[13px] text-tq-fg-3 pl-1">Checking USB access…</p>
+        <p className="text-[13px] text-tq-fg-3 pl-1">{t('devices.checkingUsb')}</p>
       )}
 
       {support === 'unsupported' && (
@@ -93,15 +96,20 @@ function DevicesSection({
           <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
           <div className="space-y-1">
             <p className="font-semibold">
-              {apiMode === 'HID' ? 'WebHID' : 'WebUSB'} is not available in this browser
+              {t('devices.notAvailable', { api: apiMode === 'HID' ? 'WebHID' : 'WebUSB' })}
             </p>
-            <p className="text-amber-700">
-              USB device access requires Chrome or Edge served over HTTPS or localhost.
-            </p>
+            <p className="text-amber-700">{t('devices.notAvailableDesc')}</p>
             <ol className="mt-2 list-decimal list-inside space-y-1 text-amber-700">
-              <li>Open <span className="font-mono text-[11px]">chrome://flags/#enable-experimental-web-platform-features</span></li>
-              <li>Set the flag to <strong>Enabled</strong></li>
-              <li>Relaunch Chrome and return to this page</li>
+              <li>
+                {t('devices.step1Prefix')}{' '}
+                <span className="font-mono text-[11px]">
+                  chrome://flags/#enable-experimental-web-platform-features
+                </span>
+              </li>
+              <li>
+                {t('devices.step2Prefix')} <strong>{t('devices.step2Bold')}</strong>
+              </li>
+              <li>{t('devices.step3')}</li>
             </ol>
           </div>
         </div>
@@ -110,7 +118,9 @@ function DevicesSection({
       {support === 'supported' && devices.length === 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-tq-border bg-tq-bg-soft px-4 py-3 text-[13px] text-tq-fg-3">
           <Usb size={15} className="shrink-0 text-tq-fg-4" />
-          No devices found. Click <strong className="mx-1">Scan for devices</strong> to grant browser access and detect connected hardware.
+          {t('devices.noDevicesFoundPrefix')}{' '}
+          <strong className="mx-1">{t('devices.scanForDevices')}</strong>{' '}
+          {t('devices.noDevicesFoundSuffix')}
         </div>
       )}
 
@@ -132,6 +142,7 @@ function DevicesSection({
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function DevicePage() {
+  const { t } = useTranslation()
   const { devices, totalCount, registerDevice, recordConnection, updateDevice, removeDevice } = useDevices()
   const usbHook = useUsbDevices()
   const hidHook = useHidDevices()
@@ -151,11 +162,10 @@ export default function DevicePage() {
     }))
   }, [hidHook.devices, usbHook.devices])
 
-  const activeSupport = USB_API_MODE === 'HID' ? hidHook.support : usbHook.support
-  const activeScan    = USB_API_MODE === 'HID' ? hidHook.scan    : usbHook.scan
-  const activeScanning = USB_API_MODE === 'HID' ? hidHook.scanning : usbHook.scanning
+  const activeSupport  = USB_API_MODE === 'HID' ? hidHook.support   : usbHook.support
+  const activeScan     = USB_API_MODE === 'HID' ? hidHook.scan      : usbHook.scan
+  const activeScanning = USB_API_MODE === 'HID' ? hidHook.scanning  : usbHook.scanning
 
-  // Track which serial numbers were connected last render to detect disconnects
   const prevSerialsRef = useRef<Set<string>>(new Set())
 
   const makeDeviceId = useCallback(
@@ -163,7 +173,6 @@ export default function DevicePage() {
     [],
   )
 
-  // Auto-register/update devices as they appear or disappear
   useEffect(() => {
     if (activeSupport !== 'supported') return
 
@@ -201,19 +210,28 @@ export default function DevicePage() {
     setDialog(null)
   }
 
+  const tableHeaders = [
+    t('devices.colDevice'),
+    t('devices.colSerialNumber'),
+    t('devices.colStatus'),
+    t('devices.colLastSeen'),
+    t('devices.colLastConnection'),
+    '',
+  ]
+
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Devices monitoring</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">{t('devices.title')}</h1>
         <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-          Live · Pirabeiraba Plant · {totalCount} device{totalCount !== 1 ? 's' : ''} in registry
+          {t('devices.subtitle', { count: totalCount })}
           {' · '}
-          <span className="text-tq-fg-4">{USB_API_MODE} mode</span>
+          <span className="text-tq-fg-4">{t('devices.modeLabel', { mode: USB_API_MODE })}</span>
         </p>
       </div>
 
-      {/* Connected devices (WebHID or WebUSB based on VITE_TERMIQ_USB_API) */}
+      {/* Connected devices */}
       <DevicesSection
         apiMode={USB_API_MODE}
         support={activeSupport}
@@ -228,14 +246,14 @@ export default function DevicePage() {
       {/* Device registry table */}
       <Card>
         <CardHeader className="p-4">
-          <CardTitle>Device registry</CardTitle>
+          <CardTitle>{t('devices.registry')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-tq-bg-soft hover:bg-tq-bg-soft">
-                {['Device', 'Serial number', 'Status', 'Last seen', 'Last connection', ''].map((h) => (
-                  <TableHead key={h}>{h}</TableHead>
+                {tableHeaders.map((h, i) => (
+                  <TableHead key={i}>{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -243,7 +261,7 @@ export default function DevicePage() {
               {devices.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-[13px] text-tq-fg-3">
-                    No devices in registry yet. Connect a device via USB to register it automatically.
+                    {t('devices.noDevicesInRegistry')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -261,20 +279,20 @@ export default function DevicePage() {
                       className="font-mono text-[12px] text-tq-fg-2"
                       title={device.lastSeen ?? undefined}
                     >
-                      {formatRelative(device.lastSeen)}
+                      {formatRelative(device.lastSeen, t)}
                     </TableCell>
                     <TableCell
                       className="font-mono text-[12px] text-tq-fg-2"
                       title={device.lastConnection ?? undefined}
                     >
-                      {formatRelative(device.lastConnection)}
+                      {formatRelative(device.lastConnection, t)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 justify-end">
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="Rename device"
+                          aria-label={t('devices.ariaRename')}
                           onClick={() => setDialog({ type: 'edit', device })}
                         >
                           <Pencil size={13} />
@@ -282,7 +300,7 @@ export default function DevicePage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="Remove device"
+                          aria-label={t('devices.ariaRemove')}
                           className="text-tq-danger hover:text-tq-danger hover:bg-red-50"
                           onClick={() => setDialog({ type: 'delete', device })}
                         >
@@ -301,7 +319,7 @@ export default function DevicePage() {
       {/* Placeholder notice */}
       <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-tq-border bg-tq-bg-soft text-[13px] text-tq-fg-3">
         <Gauge size={16} className="text-tq-fg-4 shrink-0" />
-        Detailed device telemetry, threshold configuration, and historical comparisons are coming soon.
+        {t('devices.telemetryComingSoon')}
       </div>
 
       {/* Dialogs */}

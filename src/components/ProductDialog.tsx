@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -88,6 +89,7 @@ interface ProductFormDialogProps {
 type Errors = Partial<Record<keyof ProductFormValues, string>>
 
 export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductFormDialogProps) {
+  const { t } = useTranslation()
   const [form, setForm] = useState<ProductFormValues>(blankForm)
   const [errors, setErrors] = useState<Errors>({})
 
@@ -103,9 +105,9 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
 
   function validate(): boolean {
     const next: Errors = {}
-    if (!form.name.trim()) next.name = 'Required'
-    if (!form.sku.trim()) next.sku = 'Required'
-    if (!form.material.trim()) next.material = 'Required'
+    if (!form.name.trim()) next.name = t('common.required')
+    if (!form.sku.trim()) next.sku = t('common.required')
+    if (!form.material.trim()) next.material = t('common.required')
     if (!form.dim_d || Number(form.dim_d) <= 0) next.dim_d = '> 0'
     if (!form.dim_w || Number(form.dim_w) <= 0) next.dim_w = '> 0'
     if (!form.dim_l || Number(form.dim_l) <= 0) next.dim_l = '> 0'
@@ -123,13 +125,13 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
     <Dialog
       open
       onClose={onClose}
-      title={mode === 'create' ? 'Add product' : 'Edit product'}
+      title={mode === 'create' ? t('products.formCreate') : t('products.formEdit')}
       className="max-w-lg"
     >
       <DialogBody className="flex flex-col gap-4">
         {/* Name */}
         <div>
-          <Label htmlFor="p-name">Product name</Label>
+          <Label htmlFor="p-name">{t('products.labelName')}</Label>
           <input
             id="p-name"
             type="text"
@@ -144,7 +146,7 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
         {/* SKU + Material */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="p-sku">SKU</Label>
+            <Label htmlFor="p-sku">{t('products.labelSku')}</Label>
             <input
               id="p-sku"
               type="text"
@@ -156,7 +158,7 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
             <FieldError msg={errors.sku} />
           </div>
           <div>
-            <Label htmlFor="p-material">Material</Label>
+            <Label htmlFor="p-material">{t('products.labelMaterial')}</Label>
             <input
               id="p-material"
               type="text"
@@ -171,7 +173,7 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
 
         {/* Dimensions D × W × L */}
         <div>
-          <Label htmlFor="p-dim-d">Dimensions (mm) — D × W × L</Label>
+          <Label htmlFor="p-dim-d">{t('products.labelDimensions')}</Label>
           <div className="grid grid-cols-3 gap-2">
             {(['dim_d', 'dim_w', 'dim_l'] as const).map((key, i) => (
               <div key={key} className="relative">
@@ -194,7 +196,7 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
         {/* Weight + Surface area */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="p-weight">Weight (kg)</Label>
+            <Label htmlFor="p-weight">{t('products.labelWeight')}</Label>
             <input
               id="p-weight"
               type="number"
@@ -208,7 +210,7 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
             <FieldError msg={errors.weight} />
           </div>
           <div>
-            <Label htmlFor="p-surface">Surface area (m²)</Label>
+            <Label htmlFor="p-surface">{t('products.labelSurface')}</Label>
             <input
               id="p-surface"
               type="number"
@@ -225,7 +227,7 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
 
         {/* Notes */}
         <div>
-          <Label htmlFor="p-notes">Notes</Label>
+          <Label htmlFor="p-notes">{t('products.labelNotes')}</Label>
           <textarea
             id="p-notes"
             rows={3}
@@ -238,9 +240,9 @@ export function ProductFormDialog({ mode, product, onClose, onSubmit }: ProductF
       </DialogBody>
 
       <DialogFooter>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
         <Button variant="primary" size="sm" onClick={handleSubmit}>
-          {mode === 'create' ? 'Add product' : 'Save changes'}
+          {mode === 'create' ? t('products.formCreate') : t('common.saveChanges')}
         </Button>
       </DialogFooter>
     </Dialog>
@@ -256,19 +258,20 @@ interface DeleteProductDialogProps {
 }
 
 export function DeleteProductDialog({ product, onClose, onConfirm }: DeleteProductDialogProps) {
+  const { t } = useTranslation()
   return (
-    <Dialog open onClose={onClose} title="Remove product">
+    <Dialog open onClose={onClose} title={t('products.removeProduct')}>
       <DialogBody>
         <p className="text-[13px] text-tq-fg-2 leading-relaxed">
-          Remove{' '}
+          {t('common.remove')}{' '}
           <span className="font-semibold text-tq-fg-1">{product.name}</span>{' '}
-          <span className="font-mono text-[11px] text-tq-fg-3">({product.sku})</span>?
-          This action cannot be undone.
+          <span className="font-mono text-[11px] text-tq-fg-3">({product.sku})</span>
+          {t('products.removeProductSuffix')}
         </p>
       </DialogBody>
       <DialogFooter>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button variant="danger" size="sm" onClick={onConfirm}>Remove</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
+        <Button variant="danger" size="sm" onClick={onConfirm}>{t('common.remove')}</Button>
       </DialogFooter>
     </Dialog>
   )

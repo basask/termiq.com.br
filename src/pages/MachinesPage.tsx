@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Cog, CheckCircle2, Wrench, PowerOff, Plus, Pencil, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,7 +27,6 @@ function StackedSectionsBar({ sections }: { sections: Section[] }) {
 
   return (
     <div>
-      {/* Single stacked bar */}
       <div className="flex h-3 rounded-md overflow-hidden gap-px bg-tq-bg-muted">
         {sections.map((section, idx) => {
           const pct = totalDistance > 0 ? (section.distance / totalDistance) * 100 : 0
@@ -40,7 +40,6 @@ function StackedSectionsBar({ sections }: { sections: Section[] }) {
           )
         })}
       </div>
-      {/* Legend */}
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
         {sections.map((section, idx) => (
           <span key={section.id} className="inline-flex items-center gap-1">
@@ -64,10 +63,10 @@ interface MachineCardProps {
 }
 
 function MachineCard({ machine, cycles, onEdit, onDelete }: MachineCardProps) {
+  const { t } = useTranslation()
   const totalDistance = machine.sections.reduce((s, sec) => s + sec.distance, 0)
   return (
     <Card>
-      {/* Card header */}
       <CardHeader className="p-4 pb-3 border-b border-tq-divider">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -80,13 +79,13 @@ function MachineCard({ machine, cycles, onEdit, onDelete }: MachineCardProps) {
             <Badge variant={machineStatusBadgeVariant[machine.status]}>
               {machineStatusLabel[machine.status]}
             </Badge>
-            <Button variant="ghost" size="icon" aria-label="Edit machine" onClick={onEdit}>
+            <Button variant="ghost" size="icon" aria-label={t('machines.ariaEdit')} onClick={onEdit}>
               <Pencil size={13} />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Remove machine"
+              aria-label={t('machines.ariaRemove')}
               className="text-tq-danger hover:text-tq-danger hover:bg-red-50"
               onClick={onDelete}
             >
@@ -96,24 +95,23 @@ function MachineCard({ machine, cycles, onEdit, onDelete }: MachineCardProps) {
         </div>
       </CardHeader>
 
-      {/* Card body — 2 columns */}
       <CardContent className="p-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-tq-divider">
           {/* Sections column */}
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3">
-                Sections
+                {t('machines.sections')}
               </span>
               {machine.sections.length > 0 && (
                 <span className="font-mono text-[11px] text-tq-fg-3">
-                  {totalDistance.toFixed(1)} m total
+                  {t('machines.sectionsTotal', { total: totalDistance.toFixed(1) })}
                 </span>
               )}
             </div>
 
             {machine.sections.length === 0 ? (
-              <p className="text-[12px] text-tq-fg-4 italic">No sections defined</p>
+              <p className="text-[12px] text-tq-fg-4 italic">{t('machines.noSections')}</p>
             ) : (
               <StackedSectionsBar sections={machine.sections} />
             )}
@@ -123,13 +121,13 @@ function MachineCard({ machine, cycles, onEdit, onDelete }: MachineCardProps) {
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3">
-                Recent cycles
+                {t('machines.recentCycles')}
               </span>
               <span className="font-mono text-[11px] text-tq-fg-3">{cycles.length}</span>
             </div>
 
             {cycles.length === 0 ? (
-              <p className="text-[12px] text-tq-fg-4 italic">No cycles recorded</p>
+              <p className="text-[12px] text-tq-fg-4 italic">{t('machines.noCycles')}</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {cycles.slice(0, 5).map((cycle) => (
@@ -163,6 +161,7 @@ type DialogState =
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function MachinesPage() {
+  const { t } = useTranslation()
   const { machines, totalCount, activeCount, maintenanceCount, inactiveCount,
           createMachine, updateMachine, removeMachine } = useMachines()
   const { cycles } = useCycles()
@@ -183,10 +182,10 @@ export default function MachinesPage() {
   }
 
   const kpis = [
-    { label: 'Total machines', value: String(totalCount),      icon: Cog,          color: 'text-tq-green-600' },
-    { label: 'Active',         value: String(activeCount),     icon: CheckCircle2, color: 'text-tq-success'   },
-    { label: 'Maintenance',    value: String(maintenanceCount),icon: Wrench,       color: 'text-tq-warning'   },
-    { label: 'Inactive',       value: String(inactiveCount),   icon: PowerOff,     color: 'text-tq-fg-4'      },
+    { labelKey: 'machines.kpiTotal',       value: String(totalCount),       icon: Cog,          color: 'text-tq-green-600' },
+    { labelKey: 'machines.kpiActive',      value: String(activeCount),      icon: CheckCircle2, color: 'text-tq-success'   },
+    { labelKey: 'machines.kpiMaintenance', value: String(maintenanceCount), icon: Wrench,       color: 'text-tq-warning'   },
+    { labelKey: 'machines.kpiInactive',    value: String(inactiveCount),    icon: PowerOff,     color: 'text-tq-fg-4'      },
   ]
 
   return (
@@ -194,21 +193,19 @@ export default function MachinesPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Machines</h1>
-          <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-            Process lines · Pirabeiraba Plant
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">{t('machines.title')}</h1>
+          <p className="font-mono text-[12px] text-tq-fg-3 mt-1">{t('machines.subtitle')}</p>
         </div>
         <Button variant="primary" size="md" onClick={() => setDialog({ type: 'create' })}>
           <Plus size={14} />
-          Add machine
+          {t('machines.addMachine')}
         </Button>
       </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map(({ label, value, icon: Icon, color }) => (
-          <Card key={label}>
+        {kpis.map(({ labelKey, value, icon: Icon, color }) => (
+          <Card key={labelKey}>
             <CardContent className="p-4 flex items-start gap-3">
               <div className={`mt-0.5 ${color}`}>
                 <Icon size={20} />
@@ -218,7 +215,7 @@ export default function MachinesPage() {
                   {value}
                 </div>
                 <div className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 mt-1.5">
-                  {label}
+                  {t(labelKey)}
                 </div>
               </div>
             </CardContent>
@@ -240,12 +237,12 @@ export default function MachinesPage() {
 
         {machines.length === 0 && (
           <div className="py-16 text-center text-[13px] text-tq-fg-3">
-            No machines yet.{' '}
+            {t('machines.noMachinesPrefix')}{' '}
             <button
               className="text-tq-green-700 font-medium hover:underline"
               onClick={() => setDialog({ type: 'create' })}
             >
-              Add the first one.
+              {t('machines.noMachinesBtn')}
             </button>
           </div>
         )}

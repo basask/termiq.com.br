@@ -1,4 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Cpu, RefreshCw, LineChart, FileText, Package, Cog, Settings, X } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -6,12 +7,12 @@ import { cn } from '@/lib/utils'
 import LogoMark from '@/components/LogoMark'
 
 const navItems = [
-  { path: '/devices',  icon: Cpu,       label: 'Devices'  },
-  { path: '/cycles',   icon: RefreshCw, label: 'Cycles'   },
-  { path: '/analyses', icon: LineChart, label: 'Analyses' },
-  { path: '/machines', icon: Cog,       label: 'Machines' },
-  { path: '/products', icon: Package,   label: 'Products' },
-  { path: '/report',   icon: FileText,  label: 'Report'   },
+  { path: '/devices',  icon: Cpu,       labelKey: 'nav.devices'  },
+  { path: '/cycles',   icon: RefreshCw, labelKey: 'nav.cycles'   },
+  { path: '/analyses', icon: LineChart, labelKey: 'nav.analyses' },
+  { path: '/machines', icon: Cog,       labelKey: 'nav.machines' },
+  { path: '/products', icon: Package,   labelKey: 'nav.products' },
+  { path: '/report',   icon: FileText,  labelKey: 'nav.report'   },
 ]
 
 interface SidebarProps {
@@ -20,7 +21,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { t } = useTranslation()
   const location = useLocation()
+  const navigate = useNavigate()
 
   return (
     <aside
@@ -40,7 +43,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <button
           onClick={onClose}
           className="2xl:hidden flex items-center justify-center w-7 h-7 rounded-md text-tq-fg-3 hover:bg-tq-bg-muted hover:text-tq-fg-1 transition-colors"
-          aria-label="Close menu"
+          aria-label={t('nav.closeMenu')}
         >
           <X size={16} />
         </button>
@@ -48,7 +51,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Primary nav */}
       <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto min-h-0">
-        {navItems.map(({ path, icon: Icon, label }) => {
+        {navItems.map(({ path, icon: Icon, labelKey }) => {
           const isActive =
             location.pathname === path ||
             (path === '/devices'  && location.pathname === '/') ||
@@ -73,7 +76,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               >
                 <Icon size={18} />
               </span>
-              <span className="flex-1">{label}</span>
+              <span className="flex-1">{t(labelKey)}</span>
             </NavLink>
           )
         })}
@@ -83,16 +86,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="flex flex-col gap-1 mt-3 pt-3">
         <Separator className="mb-2" />
         <button
+          onClick={() => { navigate('/settings'); onClose() }}
           className={cn(
             'flex items-center gap-2.5 px-2.5 py-[7px] rounded-[7px] text-[13px] font-medium text-tq-fg-2 w-full text-left',
             'transition-colors duration-[140ms] ease-tq-out',
             'hover:bg-tq-bg-muted hover:text-tq-fg-1',
+            location.pathname === '/settings' && 'bg-white text-tq-fg-1 font-semibold shadow-sm',
           )}
         >
-          <span className="flex items-center text-tq-fg-3">
+          <span className={cn(
+            'flex items-center transition-colors duration-[140ms]',
+            location.pathname === '/settings' ? 'text-tq-green-600' : 'text-tq-fg-3',
+          )}>
             <Settings size={18} />
           </span>
-          <span>Settings</span>
+          <span>{t('nav.settings')}</span>
         </button>
 
         <div className="flex items-center gap-2.5 px-2 py-1.5 mt-1">

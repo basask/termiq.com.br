@@ -8,6 +8,7 @@ import AnalysisPage from '@/pages/AnalysisPage'
 import ReportPage from '@/pages/ReportPage'
 import ProductsPage from '@/pages/ProductsPage'
 import MachinesPage from '@/pages/MachinesPage'
+import SettingsPage from '@/pages/SettingsPage'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="products" element={<ProductsPage />} />
           <Route path="machines" element={<MachinesPage />} />
           <Route path="report" element={<ReportPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

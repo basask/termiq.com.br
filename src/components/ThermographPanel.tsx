@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Loader2, Plug, Unplug, List, Download, AlertTriangle, CheckCircle2, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function ThermographPanel({ device, createDriver, onConnected }: Props) {
+  const { t } = useTranslation()
   const deviceKey  = device.serialNumber ?? `${device.vendorId}-${device.productId}`
   const deviceName = device.productName ?? 'Thermograph device'
 
@@ -25,7 +27,6 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
     connect, disconnect, loadCycles, fetchCycle, fetchAllCycles,
   } = useThermograph(deviceKey, deviceName, createDriver, onConnected)
 
-  // Reactive: reference changes when any cycle is added → per-row badges update automatically.
   const cycleIds = useCycleStore((s) => s.cycleIds)
 
   const isConnected  = status === 'connected'
@@ -69,12 +70,12 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
         {isConnected ? (
           <Button variant="ghost" size="sm" onClick={disconnect}>
             <Unplug size={13} />
-            Disconnect
+            {t('thermograph.disconnect')}
           </Button>
         ) : (
           <Button variant="primary" size="sm" onClick={connect} disabled={isConnecting}>
             {isConnecting ? <Loader2 size={13} className="animate-spin" /> : <Plug size={13} />}
-            {isConnecting ? 'Connecting…' : 'Connect'}
+            {isConnecting ? t('thermograph.connecting') : t('thermograph.connect')}
           </Button>
         )}
       </CardHeader>
@@ -98,7 +99,7 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="secondary" size="sm" onClick={loadCycles} disabled={isBusy}>
                   <List size={13} />
-                  List cycles
+                  {t('thermograph.listCycles')}
                 </Button>
 
                 {cycles !== null && cycles.length > 0 && (
@@ -110,8 +111,8 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
                   >
                     <Download size={13} />
                     {pendingCount === 0
-                      ? 'All cycles fetched'
-                      : `Fetch all cycles (${pendingCount} new)`}
+                      ? t('thermograph.allFetched')
+                      : t('thermograph.fetchAll', { count: pendingCount })}
                   </Button>
                 )}
 
@@ -127,17 +128,17 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
             {/* device info */}
             {info && (
               <section className="space-y-2">
-                <SectionLabel>Device info</SectionLabel>
+                <SectionLabel>{t('thermograph.deviceInfo')}</SectionLabel>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1.5 text-[13px]">
                   {device.serialNumber && (
-                    <InfoRow label="Serial" value={device.serialNumber} mono />
+                    <InfoRow label={t('thermograph.labelSerial')} value={device.serialNumber} mono />
                   )}
-                  <InfoRow label="Model"      value={`${info.modelHint || '—'} · v${info.version}`} />
-                  <InfoRow label="Clock"      value={`${info.clockDate} ${info.clockTime}`} mono />
-                  <InfoRow label="Channels"   value={String(info.channels)} />
-                  <InfoRow label="Interval"   value={`${info.samplingInterval} s`} />
-                  <InfoRow label="Datapoints" value={String(info.totalDatapoints)} />
-                  <InfoRow label="Status"     value={info.statusBytes} mono />
+                  <InfoRow label={t('thermograph.labelModel')}      value={`${info.modelHint || '—'} · v${info.version}`} />
+                  <InfoRow label={t('thermograph.labelClock')}      value={`${info.clockDate} ${info.clockTime}`} mono />
+                  <InfoRow label={t('thermograph.labelChannels')}   value={String(info.channels)} />
+                  <InfoRow label={t('thermograph.labelInterval')}   value={`${info.samplingInterval} s`} />
+                  <InfoRow label={t('thermograph.labelDatapoints')} value={String(info.totalDatapoints)} />
+                  <InfoRow label={t('thermograph.labelStatus')}     value={info.statusBytes} mono />
                 </div>
               </section>
             )}
@@ -145,14 +146,19 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
             {/* cycles list */}
             {cycles !== null && (
               <section className="space-y-2">
-                <SectionLabel>Stored cycles ({cycles.length})</SectionLabel>
+                <SectionLabel>{t('thermograph.storedCycles', { count: cycles.length })}</SectionLabel>
                 {cycles.length === 0 ? (
-                  <p className="text-[13px] text-tq-fg-3">No cycles found on device.</p>
+                  <p className="text-[13px] text-tq-fg-3">{t('thermograph.noCyclesOnDevice')}</p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-tq-bg-soft hover:bg-tq-bg-soft">
-                        {['#', 'Start', 'Meta', '', ''].map((h, i) => (
+                        {[
+                          t('thermograph.colIndex'),
+                          t('thermograph.colStart'),
+                          t('thermograph.colMeta'),
+                          '', '',
+                        ].map((h, i) => (
                           <TableHead key={i} className="text-[11px]">{h}</TableHead>
                         ))}
                       </TableRow>
@@ -178,12 +184,12 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
                               {isFetching ? (
                                 <span className="inline-flex items-center gap-1 text-[11px] text-tq-fg-3">
                                   <Loader2 size={11} className="animate-spin" />
-                                  Fetching…
+                                  {t('thermograph.fetching')}
                                 </span>
                               ) : isFetched ? (
                                 <span className="inline-flex items-center gap-1 text-[11px] text-tq-success font-medium">
                                   <CheckCircle2 size={11} />
-                                  Fetched
+                                  {t('thermograph.fetched')}
                                 </span>
                               ) : null}
                             </TableCell>
@@ -193,7 +199,7 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
                                   <Button variant="ghost" size="sm" asChild>
                                     <Link to={`/cycle/${encodeURIComponent(uid)}`}>
                                       <ExternalLink size={12} />
-                                      View
+                                      {t('common.view')}
                                     </Link>
                                   </Button>
                                 )}
@@ -204,7 +210,7 @@ export function ThermographPanel({ device, createDriver, onConnected }: Props) {
                                   onClick={() => fetchCycle(r.index)}
                                 >
                                   <Download size={12} />
-                                  {isFetched ? 'Re-fetch' : 'Fetch'}
+                                  {isFetched ? t('thermograph.reFetch') : t('thermograph.fetch')}
                                 </Button>
                               </div>
                             </TableCell>

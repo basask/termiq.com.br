@@ -1,5 +1,6 @@
 import { Suspense, use, useState, useMemo, type FormEvent } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import ReactECharts from 'echarts-for-react'
 import { Thermometer, Activity, Clock, LineChart, ArrowLeft, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -53,6 +54,7 @@ function KpiCard({ kpi, display }: { kpi: Kpi; display: typeof KPI_DISPLAY[0] })
 }
 
 function ThermalChart() {
+  const { t } = useTranslation()
   const { timeseriesData, buildChartOption } = useAnalysis()
   const timeseries = use(timeseriesData)
   return (
@@ -67,6 +69,7 @@ function ThermalChart() {
 // ── new analysis form ─────────────────────────────────────────────────────────
 
 function NewAnalysisForm() {
+  const { t } = useTranslation()
   const [searchParams]  = useSearchParams()
   const navigate        = useNavigate()
   const addAnalysis     = useAnalysisStore((s) => s.addAnalysis)
@@ -77,7 +80,6 @@ function NewAnalysisForm() {
   const machineNameById = useMemo(() => new Map(machines.map((m) => [m.id, m.name])), [machines])
   const productNameById = useMemo(() => new Map(products.map((p) => [p.id, p.name])), [products])
 
-  // Only cycles with both Machine and Product assigned are eligible for analysis
   const eligibleCycles = useMemo(
     () => allCycles.filter((c) => c.machineId && c.productId),
     [allCycles],
@@ -104,35 +106,36 @@ function NewAnalysisForm() {
         className="inline-flex items-center gap-1.5 text-[13px] text-tq-fg-3 hover:text-tq-fg-1 w-fit"
       >
         <ArrowLeft size={14} />
-        Back to analyses
+        {t('analyses.backToAnalyses')}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">New analysis</h1>
-        <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-          Name this analysis and link it to a cycle
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">{t('analyses.newTitle')}</h1>
+        <p className="font-mono text-[12px] text-tq-fg-3 mt-1">{t('analyses.newSubtitle')}</p>
       </div>
 
       <Card className="max-w-lg">
         <CardHeader className="p-4">
-          <CardTitle>Analysis setup</CardTitle>
+          <CardTitle>{t('analyses.setup')}</CardTitle>
           <CardDescription>
-            Only cycles with both Machine and Product assigned are listed. Set those on the{' '}
-            <Link to="/cycles" className="underline hover:text-tq-fg-1">Cycle page</Link> first if needed.
+            {t('analyses.setupDescPrefix')}{' '}
+            <Link to="/cycles" className="underline hover:text-tq-fg-1">
+              {t('analyses.setupDescLink')}
+            </Link>{' '}
+            {t('analyses.setupDescSuffix')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-4">
-                Cycle
+                {t('analyses.labelCycle')}
               </label>
               <Select
                 value={isEligibleCycleSelected ? cycleId : ''}
                 onChange={(e) => setCycleId(e.target.value)}
               >
-                <option value="">— select a cycle —</option>
+                <option value="">{t('analyses.selectCycle')}</option>
                 {eligibleCycles.map((c: Cycle) => {
                   const machine = machineNameById.get(c.machineId!) ?? c.machineId
                   const product = productNameById.get(c.productId!) ?? c.productId
@@ -145,18 +148,18 @@ function NewAnalysisForm() {
               </Select>
               {eligibleCycles.length === 0 && (
                 <p className="text-[12px] text-tq-fg-4">
-                  No eligible cycles.{' '}
+                  {t('analyses.noEligibleCyclesPrefix')}{' '}
                   <Link to="/cycles" className="underline hover:text-tq-fg-2">
-                    Open a cycle
+                    {t('analyses.noEligibleCyclesLink')}
                   </Link>{' '}
-                  and assign both a Machine and a Product to it first.
+                  {t('analyses.noEligibleCyclesSuffix')}
                 </p>
               )}
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-tq-fg-4">
-                Name
+                {t('analyses.labelName')}
               </label>
               <input
                 type="text"
@@ -173,7 +176,7 @@ function NewAnalysisForm() {
               className="self-start"
             >
               <Plus size={14} />
-              Create analysis
+              {t('analyses.createAnalysis')}
             </Button>
           </form>
         </CardContent>
@@ -185,6 +188,7 @@ function NewAnalysisForm() {
 // ── analysis detail ───────────────────────────────────────────────────────────
 
 function AnalysisDetail({ analysis }: { analysis: Analysis }) {
+  const { t } = useTranslation()
   const { kpis: demoKpis } = useAnalysis()
   const cycle = useCycleStore((s) => s.cycles.find((c) => c.id === analysis.cycleId))
 
@@ -195,13 +199,18 @@ function AnalysisDetail({ analysis }: { analysis: Analysis }) {
   const createdDate = new Date(analysis.createdAt)
   const createdStr  = `${createdDate.toLocaleDateString()} ${createdDate.toTimeString().slice(0, 5)}`
 
+  const channels = cycle?.channels ?? 1
   const chartTitle = hasSamples
-    ? `Temperature — ${cycle!.channels ?? 1} channel${(cycle!.channels ?? 1) !== 1 ? 's' : ''}`
-    : 'Thermal series — last 24 hours'
+    ? t('analyses.chartTitleReal', { count: channels })
+    : t('analyses.chartTitleDemo')
 
   const chartDesc = hasSamples
-    ? `${cycle!.samples!.length} samples · ${cycle!.interval ?? 1}s interval · started ${cycle!.start}`
-    : 'Inlet temp · Outlet temp · Flow rate · sensor_temp_b03'
+    ? t('analyses.chartDescReal', {
+        samples:  cycle!.samples!.length,
+        interval: cycle!.interval ?? 1,
+        start:    cycle!.start,
+      })
+    : t('analyses.chartDescDemo')
 
   return (
     <div className="p-4 md:p-7 flex flex-col gap-6">
@@ -210,13 +219,13 @@ function AnalysisDetail({ analysis }: { analysis: Analysis }) {
         className="inline-flex items-center gap-1.5 text-[13px] text-tq-fg-3 hover:text-tq-fg-1 w-fit"
       >
         <ArrowLeft size={14} />
-        Back to analyses
+        {t('analyses.backToAnalyses')}
       </Link>
 
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">{analysis.name}</h1>
         <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
-          Created {createdStr}
+          {t('analyses.created')} {createdStr}
           {cycle && (
             <>
               {' · '}
@@ -255,7 +264,7 @@ function AnalysisDetail({ analysis }: { analysis: Analysis }) {
             <Suspense
               fallback={
                 <div className="h-64 flex items-center justify-center font-mono text-[12px] text-tq-fg-3">
-                  Loading chart…
+                  {t('analyses.loadingChart')}
                 </div>
               }
             >
@@ -271,6 +280,7 @@ function AnalysisDetail({ analysis }: { analysis: Analysis }) {
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function AnalysisPage() {
+  const { t } = useTranslation()
   const { analysisId } = useParams<{ analysisId: string }>()
   const analysis = useAnalysisStore((s) => s.analyses.find((a) => a.id === analysisId))
 
@@ -284,9 +294,9 @@ export default function AnalysisPage() {
           className="inline-flex items-center gap-1.5 text-[13px] text-tq-fg-3 hover:text-tq-fg-1 w-fit"
         >
           <ArrowLeft size={14} />
-          Back to analyses
+          {t('analyses.backToAnalyses')}
         </Link>
-        <p className="text-[14px] text-tq-fg-3">Analysis not found.</p>
+        <p className="text-[14px] text-tq-fg-3">{t('analyses.analysisNotFound')}</p>
       </div>
     )
   }

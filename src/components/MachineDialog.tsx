@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, X } from 'lucide-react'
 import { Dialog, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -95,6 +96,7 @@ interface MachineFormDialogProps {
 }
 
 export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineFormDialogProps) {
+  const { t } = useTranslation()
   const [form, setForm] = useState<MachineFormValues>(blankForm)
   const [errors, setErrors] = useState<FormErrors>({})
 
@@ -133,12 +135,12 @@ export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineF
 
   function validate(): boolean {
     const next: FormErrors = {}
-    if (!form.name.trim()) next.name = 'Required'
+    if (!form.name.trim()) next.name = t('common.required')
 
     const sectionErrors: Record<string, SectionError> = {}
     form.sections.forEach((s) => {
       const se: SectionError = {}
-      if (!s.name.trim()) se.name = 'Required'
+      if (!s.name.trim()) se.name = t('common.required')
       if (!s.distance || Number(s.distance) <= 0) se.distance = '> 0'
       if (Object.keys(se).length) sectionErrors[s.draftId] = se
     })
@@ -159,14 +161,14 @@ export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineF
     <Dialog
       open
       onClose={onClose}
-      title={mode === 'create' ? 'Add machine' : 'Edit machine'}
+      title={mode === 'create' ? t('machines.formCreate') : t('machines.formEdit')}
       className="max-w-xl"
     >
       <DialogBody className="flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
         {/* Name + Status */}
         <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
           <div>
-            <Label htmlFor="m-name">Machine name</Label>
+            <Label htmlFor="m-name">{t('machines.labelName')}</Label>
             <input
               id="m-name"
               type="text"
@@ -181,16 +183,16 @@ export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineF
             {errors.name && <p className="mt-1 text-[11px] text-tq-danger">{errors.name}</p>}
           </div>
           <div>
-            <Label htmlFor="m-status">Status</Label>
+            <Label htmlFor="m-status">{t('machines.labelStatus')}</Label>
             <select
               id="m-status"
               value={form.status}
               onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as MachineStatus }))}
               className={fieldCls}
             >
-              <option value="active">Active</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">{t('machines.statusActive')}</option>
+              <option value="maintenance">{t('machines.statusMaintenance')}</option>
+              <option value="inactive">{t('machines.statusInactive')}</option>
             </select>
           </div>
         </div>
@@ -199,7 +201,7 @@ export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineF
         <div>
           <div className="flex items-center justify-between mb-2">
             <Label htmlFor="m-sections">
-              Sections{form.sections.length > 0 && ` (${form.sections.length})`}
+              {t('machines.labelSections')}{form.sections.length > 0 && ` (${form.sections.length})`}
             </Label>
             {form.sections.length > 0 && (
               <span className="font-mono text-[11px] text-tq-fg-3">
@@ -224,7 +226,7 @@ export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineF
                       type="text"
                       value={section.name}
                       onChange={(e) => updateSection(section.draftId, 'name', e.target.value)}
-                      placeholder="Stage name"
+                      placeholder={t('machines.sectionPlaceholderName')}
                       className={cn(fieldCls, errCls(se?.name))}
                     />
                     {se?.name && <p className="mt-0.5 text-[11px] text-tq-danger">{se.name}</p>}
@@ -251,7 +253,7 @@ export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineF
                   <button
                     onClick={() => removeSection(section.draftId)}
                     className="mt-2 flex items-center justify-center w-7 h-7 rounded-md text-tq-fg-4 hover:text-tq-danger hover:bg-red-50 transition-colors shrink-0"
-                    aria-label="Remove section"
+                    aria-label={t('machines.ariaRemoveSection')}
                   >
                     <X size={14} />
                   </button>
@@ -268,15 +270,15 @@ export function MachineFormDialog({ mode, machine, onClose, onSubmit }: MachineF
             )}
           >
             <Plus size={13} />
-            Add section
+            {t('machines.addSection')}
           </button>
         </div>
       </DialogBody>
 
       <DialogFooter>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
         <Button variant="primary" size="sm" onClick={handleSubmit}>
-          {mode === 'create' ? 'Add machine' : 'Save changes'}
+          {mode === 'create' ? t('machines.formCreate') : t('machines.saveChanges')}
         </Button>
       </DialogFooter>
     </Dialog>
@@ -292,19 +294,20 @@ interface DeleteMachineDialogProps {
 }
 
 export function DeleteMachineDialog({ machine, onClose, onConfirm }: DeleteMachineDialogProps) {
+  const { t } = useTranslation()
   return (
-    <Dialog open onClose={onClose} title="Remove machine">
+    <Dialog open onClose={onClose} title={t('machines.removeMachine')}>
       <DialogBody>
         <p className="text-[13px] text-tq-fg-2 leading-relaxed">
-          Remove{' '}
+          {t('common.remove')}{' '}
           <span className="font-semibold text-tq-fg-1">{machine.name}</span>{' '}
-          <span className="font-mono text-[11px] text-tq-fg-3">({machine.id})</span>?
-          All section definitions will be lost. This action cannot be undone.
+          <span className="font-mono text-[11px] text-tq-fg-3">({machine.id})</span>
+          {t('machines.removeMachineSuffix')}
         </p>
       </DialogBody>
       <DialogFooter>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button variant="danger" size="sm" onClick={onConfirm}>Remove</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
+        <Button variant="danger" size="sm" onClick={onConfirm}>{t('common.remove')}</Button>
       </DialogFooter>
     </Dialog>
   )

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ interface EditDeviceDialogProps {
 }
 
 export function EditDeviceDialog({ device, onClose, onSubmit }: EditDeviceDialogProps) {
+  const { t } = useTranslation()
   const [name, setName] = useState(device.name)
   const [error, setError] = useState('')
 
@@ -29,18 +31,18 @@ export function EditDeviceDialog({ device, onClose, onSubmit }: EditDeviceDialog
   }, [device])
 
   function handleSubmit() {
-    if (!name.trim()) { setError('Name is required'); return }
+    if (!name.trim()) { setError(t('devices.nameRequired')); return }
     onSubmit(name.trim())
   }
 
   return (
-    <Dialog open onClose={onClose} title="Rename device">
+    <Dialog open onClose={onClose} title={t('devices.renameDevice')}>
       <DialogBody>
         <label
           htmlFor="device-name"
           className="block text-[11px] font-semibold uppercase tracking-widest text-tq-fg-3 mb-1.5"
         >
-          Device name
+          {t('devices.deviceName')}
         </label>
         <input
           id="device-name"
@@ -54,8 +56,8 @@ export function EditDeviceDialog({ device, onClose, onSubmit }: EditDeviceDialog
         {error && <p className="mt-1 text-[11px] text-tq-danger">{error}</p>}
       </DialogBody>
       <DialogFooter>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" size="sm" onClick={handleSubmit}>Save</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
+        <Button variant="primary" size="sm" onClick={handleSubmit}>{t('common.save')}</Button>
       </DialogFooter>
     </Dialog>
   )
@@ -70,19 +72,20 @@ interface DeleteConfirmDialogProps {
 }
 
 export function DeleteConfirmDialog({ device, onClose, onConfirm }: DeleteConfirmDialogProps) {
+  const { t } = useTranslation()
   return (
-    <Dialog open onClose={onClose} title="Remove device">
+    <Dialog open onClose={onClose} title={t('devices.removeDevice')}>
       <DialogBody>
         <p className="text-[13px] text-tq-fg-2 leading-relaxed">
-          Remove{' '}
+          {t('common.remove')}{' '}
           <span className="font-semibold text-tq-fg-1">{device.name}</span>{' '}
-          <span className="font-mono text-[11px] text-tq-fg-3">({device.id})</span>?
-          This will delete it from the registry. The device will re-appear when detected again via USB.
+          <span className="font-mono text-[11px] text-tq-fg-3">({device.id})</span>
+          {t('devices.removeDeviceSuffix')}
         </p>
       </DialogBody>
       <DialogFooter>
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button variant="danger" size="sm" onClick={onConfirm}>Remove</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
+        <Button variant="danger" size="sm" onClick={onConfirm}>{t('common.remove')}</Button>
       </DialogFooter>
     </Dialog>
   )

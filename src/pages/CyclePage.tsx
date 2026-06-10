@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, FileDown, Thermometer, Clock, BarChart2, Layers, Cpu, Package, LineChart } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -72,6 +73,7 @@ function MetaCard({
 // ── temperature table ─────────────────────────────────────────────────────────
 
 function TemperatureTable({ cycle }: { cycle: Cycle }) {
+  const { t } = useTranslation()
   if (!cycle.samples || !cycle.channels || !cycle.interval) return null
 
   const [datePart, timePart] = cycle.start.split(' ')
@@ -84,17 +86,17 @@ function TemperatureTable({ cycle }: { cycle: Cycle }) {
   return (
     <Card>
       <CardHeader className="p-4 flex-row items-center justify-between">
-        <CardTitle>Temperature samples</CardTitle>
+        <CardTitle>{t('cycle.temperatureSamples')}</CardTitle>
         <Button variant="secondary" size="sm" onClick={() => exportCsv(cycle)}>
           <FileDown size={13} />
-          Export CSV
+          {t('cycle.exportCsv')}
         </Button>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-tq-bg-soft hover:bg-tq-bg-soft">
-              <TableHead className="text-[11px]">Time</TableHead>
+              <TableHead className="text-[11px]">{t('cycle.colTime')}</TableHead>
               {Array.from({ length: cycle.channels }, (_, i) => (
                 <TableHead key={i} className="text-[11px]">Ch{i + 1} (°C)</TableHead>
               ))}
@@ -108,9 +110,9 @@ function TemperatureTable({ cycle }: { cycle: Cycle }) {
                   <TableCell className="font-mono text-[11px] text-tq-fg-3">
                     {ts.toTimeString().slice(0, 8)}
                   </TableCell>
-                  {sample.map((t, ch) => (
+                  {sample.map((temp, ch) => (
                     <TableCell key={ch} className="font-mono text-[12px]">
-                      {t.toFixed(1)}
+                      {temp.toFixed(1)}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -120,7 +122,7 @@ function TemperatureTable({ cycle }: { cycle: Cycle }) {
         </Table>
         {cycle.samples.length > PREVIEW && (
           <p className="px-4 py-2 text-[12px] text-tq-fg-4 border-t border-tq-border">
-            Showing first {PREVIEW} of {cycle.samples.length} samples — export CSV for the full dataset.
+            {t('cycle.showingFirst', { preview: PREVIEW, total: cycle.samples.length })}
           </p>
         )}
       </CardContent>
@@ -131,6 +133,7 @@ function TemperatureTable({ cycle }: { cycle: Cycle }) {
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function CyclePage() {
+  const { t } = useTranslation()
   const { cycleId } = useParams<{ cycleId: string }>()
   const id = cycleId ?? ''
 
@@ -153,9 +156,9 @@ export default function CyclePage() {
           className="inline-flex items-center gap-1.5 text-[13px] text-tq-fg-3 hover:text-tq-fg-1 w-fit"
         >
           <ArrowLeft size={14} />
-          Back to cycles
+          {t('cycle.backToCycles')}
         </Link>
-        <p className="text-[14px] text-tq-fg-3">Cycle not found.</p>
+        <p className="text-[14px] text-tq-fg-3">{t('cycle.notFound')}</p>
       </div>
     )
   }
@@ -171,13 +174,13 @@ export default function CyclePage() {
         className="inline-flex items-center gap-1.5 text-[13px] text-tq-fg-3 hover:text-tq-fg-1 w-fit"
       >
         <ArrowLeft size={14} />
-        Back to cycles
+        {t('cycle.backToCycles')}
       </Link>
 
       {/* header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">Cycle detail</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-tq-fg-1">{t('cycle.title')}</h1>
           <p className="font-mono text-[12px] text-tq-fg-3 mt-1">
             {deviceName}
             {cycle.deviceKey && <> · <span className="text-tq-fg-4">{cycle.deviceKey}</span></>}
@@ -191,7 +194,7 @@ export default function CyclePage() {
             <Button asChild variant="secondary" size="sm">
               <Link to={`/analysis/new?cycleId=${encodeURIComponent(cycle.id)}`}>
                 <LineChart size={13} />
-                Create analysis
+                {t('cycle.createAnalysis')}
               </Link>
             </Button>
           )}
@@ -200,32 +203,32 @@ export default function CyclePage() {
 
       {/* meta kpis */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <MetaCard icon={Clock}       label="Start"     value={cycle.start}    mono />
-        <MetaCard icon={Clock}       label="End"       value={cycle.end}      mono />
-        <MetaCard icon={Clock}       label="Duration"  value={cycle.duration} />
+        <MetaCard icon={Clock}       label={t('cycle.labelStart')}    value={cycle.start}    mono />
+        <MetaCard icon={Clock}       label={t('cycle.labelEnd')}      value={cycle.end}      mono />
+        <MetaCard icon={Clock}       label={t('cycle.labelDuration')} value={cycle.duration} />
         {peakTemp !== null
-          ? <MetaCard icon={Thermometer} label="Peak temp" value={`${peakTemp} °C`} />
-          : <MetaCard icon={Thermometer} label="Peak temp" value={cycle.temp} />
+          ? <MetaCard icon={Thermometer} label={t('cycle.labelPeakTemp')} value={`${peakTemp} °C`} />
+          : <MetaCard icon={Thermometer} label={t('cycle.labelPeakTemp')} value={cycle.temp} />
         }
         {cycle.channels !== undefined && (
-          <MetaCard icon={Layers}    label="Channels"  value={String(cycle.channels)} />
+          <MetaCard icon={Layers}    label={t('cycle.labelChannels')} value={String(cycle.channels)} />
         )}
         {cycle.interval !== undefined && (
-          <MetaCard icon={BarChart2} label="Interval"  value={`${cycle.interval} s`} />
+          <MetaCard icon={BarChart2} label={t('cycle.labelInterval')} value={`${cycle.interval} s`} />
         )}
       </div>
 
       {/* associations */}
       <Card>
         <CardHeader className="p-4">
-          <CardTitle>Associations</CardTitle>
+          <CardTitle>{t('cycle.associations')}</CardTitle>
         </CardHeader>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Machine */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-tq-fg-4">
               <Cpu size={12} />
-              Machine
+              {t('cycle.labelMachine')}
             </label>
             <Select
               value={cycle.machineId ?? ''}
@@ -233,7 +236,7 @@ export default function CyclePage() {
                 updateCycle(cycle.id, { machineId: e.target.value || undefined })
               }
             >
-              <option value="">— not assigned —</option>
+              <option value="">{t('cycle.notAssigned')}</option>
               {machines.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
@@ -242,8 +245,8 @@ export default function CyclePage() {
             </Select>
             {machines.length === 0 && (
               <p className="text-[12px] text-tq-fg-4">
-                No machines in the system.{' '}
-                <Link to="/machines" className="underline hover:text-tq-fg-2">Add one</Link>.
+                {t('cycle.noMachinesSystem')}{' '}
+                <Link to="/machines" className="underline hover:text-tq-fg-2">{t('cycle.noMachinesAdd')}</Link>.
               </p>
             )}
           </div>
@@ -252,7 +255,7 @@ export default function CyclePage() {
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-tq-fg-4">
               <Package size={12} />
-              Product
+              {t('cycle.labelProduct')}
             </label>
             <Select
               value={cycle.productId ?? ''}
@@ -260,7 +263,7 @@ export default function CyclePage() {
                 updateCycle(cycle.id, { productId: e.target.value || undefined })
               }
             >
-              <option value="">— not assigned —</option>
+              <option value="">{t('cycle.notAssigned')}</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -269,22 +272,21 @@ export default function CyclePage() {
             </Select>
             {products.length === 0 && (
               <p className="text-[12px] text-tq-fg-4">
-                No products in the system.{' '}
-                <Link to="/products" className="underline hover:text-tq-fg-2">Add one</Link>.
+                {t('cycle.noProductsSystem')}{' '}
+                <Link to="/products" className="underline hover:text-tq-fg-2">{t('cycle.noProductsAdd')}</Link>.
               </p>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* temperature table (device cycles only) */}
+      {/* temperature table */}
       {cycle.samples ? (
         <TemperatureTable cycle={cycle} />
       ) : (
         <Card>
           <CardContent className="p-6 text-[13px] text-tq-fg-3">
-            Detailed temperature data is not available for this cycle.
-            Data is only stored for cycles fetched directly from a connected device.
+            {t('cycle.noDetailedData')}
           </CardContent>
         </Card>
       )}
